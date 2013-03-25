@@ -66,6 +66,7 @@ if ( $wp_ffpc_config['cache_loggedin'] == 0 ) {
 
 $wp_ffpc_redirect = null;
 $wp_ffpc_backend = new WP_FFPC_Backend( $wp_ffpc_config );
+$wp_ffpc_gentime = 0;
 
 if ( $wp_ffpc_backend->status() === false )
 	return false;
@@ -146,6 +147,10 @@ die();
  *
  */
 function wp_ffpc_start( ) {
+	global $wp_ffpc_gentime;
+	$mtime = explode ( " ", microtime() );
+	$wp_ffpc_gentime = $mtime[1] + $mtime[0];
+
 	/* start object "colleting" and pass it the the actual storer function  */
 	ob_start('wp_ffpc_callback');
 }
@@ -245,8 +250,7 @@ function wp_ffpc_callback( $buffer ) {
 		$meta['pingback'] = get_bloginfo('pingback_url');
 
 	/* sync all http and https requests if enabled */
-	if ( $config['sync_protocols'] == '1' )
-	{
+	if ( $config['sync_protocols'] == '1' )	{
 		if ( isset( $_SERVER['HTTP_X_FORWARDED_PROTO'] ) && $_SERVER['HTTP_X_FORWARDED_PROTO'] == 'https' )
 			$_SERVER['HTTPS'] = 'on';
 
@@ -260,6 +264,17 @@ function wp_ffpc_callback( $buffer ) {
 		}
 
 		$buffer = str_replace ( $sync_from, $sync_to, $buffer );
+	}
+
+	if ( $wp_ffpc_config['generate_time'] == '1' ) {
+		global $wp_ffpc_gentime;
+		$mtime = explode ( " ", microtime() );
+		$wp_ffpc_gentime = ( $mtime[1] + $mtime[0] )- $wp_ffpc_gentime;
+
+		$insertion = "<!-- \nWP-FFPC \n\tcache engine: ". $wp_ffpc_config['cache_type'] ."\n\tpage generation time: ". round( $wp_ffpc_gentime, 3 ) ." seconds\n-->\n";
+		$index = stripos( $buffer , '</body>' );
+
+		$buffer = substr_replace( $buffer, $insertion, $index, 0);
 	}
 
 	$wp_ffpc_backend->set ( $wp_ffpc_backend->key ( 'meta' ) , $meta );

@@ -4,7 +4,7 @@ Donate link: https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_i
 Tags: cache, page cache, full page cache, nginx, memcached, apc, speed, fast
 Requires at least: 3.0
 Tested up to: 3.5.1
-Stable tag: 1.0
+Stable tag: 1.1
 License: GPLv3
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
 
@@ -77,6 +77,12 @@ In order to make contributions a lot easier, I've moved the plugin development t
 5. NGiNX example
 
 == Changelog ==
+
+= 1.1 =
+*2013.03.25*
+
+* bugfix on backend status check
+* validate working cache "noob" mode added ( option HTML comment with engine & generation time info ), feature request by rafaelmagic ( http://wordpress.org/support/profile/rafaelmagic )
 
 = 1.0 =
 *2013.03.22*

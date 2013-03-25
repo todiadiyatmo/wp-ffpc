@@ -366,6 +366,14 @@ if ( ! class_exists( 'WP_FFPC' ) ) {
 					</dd>
 
 					<dt>
+						<label for="generate_time"><?php _e("Add HTML debug comment", $this->plugin_constant); ?></label>
+					</dt>
+					<dd>
+						<input type="checkbox" name="generate_time" id="generate_time" value="1" <?php checked($this->options['generate_time'],true); ?> />
+						<span class="description"><?php _e('Adds comment string including plugin name, cache engine and page generation time to every generated entry before closing <body> tag.', $this->plugin_constant); ?></span>
+					</dd>
+
+					<dt>
 						<label for="sync_protocols"><?php _e("Enable sync protocolls", $this->plugin_constant); ?></label>
 					</dt>
 					<dd>
