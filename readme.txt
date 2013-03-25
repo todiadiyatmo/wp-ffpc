@@ -56,6 +56,7 @@ From version 1.0, the plugin supports subdomain based WordPress Network with pos
 * WordPress >= 3.0
 
 and **at least one** of the following for storage backend:
+
 * PHP APC
 * PHP Memcached > 0.1.0
 * PHP Memcache > 2.1.0
@@ -67,6 +68,11 @@ All logs use syslog() PHP function, therefore it's presence is mandatory for log
 
 = How can I contribute? =
 In order to make contributions a lot easier, I've moved the plugin development to [GitHub](https://github.com/petermolnar/wp-ffpc "GitHub"), feel free to fork and put shiny, new things in it and get in touch with me [hello@petermolnar.eu](mailto:hello@petermolnar.eu "hello@petermolnar.eu") when you have it ready.
+
+= Where can I turn for support? =
+I provide support for the plugin as best as I can, but it comes without guarantee.
+Please post feature requests to [WP-FFPC feature request topic](http://wordpress.org/support/topic/feature-requests-14 "WP-FFPC feature request topic") and any questions on the forum.
+
 
 == Screenshots ==
 
@@ -81,8 +87,8 @@ In order to make contributions a lot easier, I've moved the plugin development t
 = 1.1 =
 *2013.03.25*
 
-* bugfix on backend status check
-* validate working cache "noob" mode added ( option HTML comment with engine & generation time info ), feature request by rafaelmagic ( http://wordpress.org/support/profile/rafaelmagic )
+* added validate caching "noob" method: HTML comment option for cache engine & generation before closing "body" tag
+* bugfix for status check ( there were situations where the status was not updated correctly )
 
 = 1.0 =
 *2013.03.22*
@@ -210,7 +216,3 @@ There are major problems with the "memcache" driver, the source is yet unkown. T
 *2012.02.16*
 
 * first public release
-
-== Support ==
-I provide support for the plugin as best as I can, but it comes without guarantee.
-Please post feature requests to [WP-FFPC feature request topic](http://wordpress.org/support/topic/feature-requests-14 "WP-FFPC feature request topic") and any questions on the forum.
