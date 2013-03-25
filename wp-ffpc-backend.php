@@ -338,6 +338,7 @@ if (!class_exists('WP_FFPC_Backend')) {
 		 *
 		 */
 		private function apc_status () {
+			$this->status = true;
 			return $this->alive;
 		}
 
