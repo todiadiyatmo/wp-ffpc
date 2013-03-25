@@ -216,7 +216,8 @@ if (!class_exists('WP_FFPC_Backend')) {
 				return false;
 
 			$internal = $this->proxy ( 'status' );
-				return $this->status;
+			$this->$internal();
+			return $this->status;
 		}
 
 		/**
