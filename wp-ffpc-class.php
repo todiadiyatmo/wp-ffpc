@@ -34,7 +34,16 @@ if ( ! class_exists( 'WP_FFPC' ) ) {
 		const port_separator  = ':';
 		const donation_id_key = 'hosted_button_id=';
 		const global_config_var = '$wp_ffpc_config';
+		const key_save = 'saved';
+		const key_delete = 'deleted';
+		const key_flush = 'flushed';
 		const slug_flush = '&flushed=true';
+		const key_precache = 'precached';
+		const slug_precache = '&precached=true';
+		const key_precache_disabled = 'precache_disabled';
+		const slug_precache_disabled = '&precache_disabled=true';
+		const precache_log = 'wp-ffpc-precache.log';
+		private $precache_message = '';
 		private $global_option = '';
 		private $global_config_key = '';
 		private $global_config = array();
@@ -44,9 +53,13 @@ if ( ! class_exists( 'WP_FFPC' ) ) {
 		private $nginx_sample = '';
 		private $acache_backend = '';
 		private $button_flush;
+		private $button_precache;
 		protected $select_cache_type = array ();
 		protected $select_invalidation_method = array ();
 		protected $valid_cache_type = array ();
+		private $precache_logfile = '';
+		private $shell_function = false;
+		private $shell_possibilities = array ();
 
 
 		/**
@@ -63,8 +76,23 @@ if ( ! class_exists( 'WP_FFPC' ) ) {
 			$this->acache_backend = $this->plugin_dir . $this->plugin_constant . '-backend.php';
 			/* flush button identifier */
 			$this->button_flush = $this->plugin_constant . '-flush';
+			/* precache button identifier */
+			$this->button_precache = $this->plugin_constant . '-precache';
 			/* global options identifier */
 			$this->global_option = $this->plugin_constant . '-global';
+			/* precache log */
+			$this->precache_logfile = sys_get_temp_dir() . '/' . self::precache_log;
+			/* search for a system function */
+			$this->shell_possibilities = array ( 'shell_exec', 'exec', 'system', 'passthru' );
+			$disabled_functions = array_map('trim', explode(',', ini_get('disable_functions') ) );
+
+			foreach ( $this->shell_possibilities as $possible ) {
+				if ( function_exists ($possible) && ! ( ini_get('safe_mode') || in_array( $possible, $disabled_functions ) ) ) {
+					/* set shell function */
+					$this->shell_function = $possible;
+					break;
+				}
+			}
 
 			/* set global config key; here, because it's needed for migration */
 			if ( $this->network )
@@ -153,6 +181,33 @@ if ( ! class_exists( 'WP_FFPC' ) ) {
 		}
 
 		/**
+		 * extending admin init
+		 *
+		 */
+		public function plugin_hook_admin_init () {
+			/* save parameter updates, if there are any */
+			if ( isset( $_POST[ $this->button_flush ] ) ) {
+				$this->backend->clear();
+				$this->status = 3;
+				header( "Location: ". $this->settings_link . self::slug_flush );
+			}
+
+			/* save parameter updates, if there are any */
+			if ( isset( $_POST[ $this->button_precache ] ) ) {
+
+				if ( $this->shell_function == false ) {
+					$this->status = 5;
+					header( "Location: ". $this->settings_link . self::slug_precache_disabled );
+				}
+				else {
+					$this->precache_message = $this->precache();
+					$this->status = 4;
+					header( "Location: ". $this->settings_link . self::slug_precache );
+				}
+			}
+		}
+
+		/**
 		 * admin panel, the admin page displayed for plugin settings
 		 */
 		public function plugin_admin_panel() {
@@ -175,6 +230,7 @@ if ( ! class_exists( 'WP_FFPC' ) ) {
 			<?php
 
 			$this->plugin_donation_form();
+
 			/**
 			 * if options were saved, display saved message
 			 */
@@ -185,22 +241,36 @@ if ( ! class_exists( 'WP_FFPC' ) ) {
 			/**
 			 * if options were saved, display saved message
 			 */
-			if ($_GET['saved']=='true' || $this->status == 1) : ?>
+			if ($_GET[ self::key_save ]=='true' || $this->status == 1) : ?>
 				<div class='updated settings-error'><p><strong><?php _e( 'Settings saved.' , $this->plugin_constant ) ?></strong></p></div>
 			<?php endif;
 
 			/**
 			 * if options were delete, display delete message
 			 */
-			if ($_GET['deleted']=='true' || $this->status == 2) : ?>
+			if ($_GET[ self::key_delete ]=='true' || $this->status == 2) : ?>
 				<div class='error'><p><strong><?php _e( 'Plugin options deleted.' , $this->plugin_constant ) ?></strong></p></div>
 			<?php endif;
 
 			/**
 			 * if options were saved
 			 */
-			if ($_GET['flushed']=='true' || $this->status == 3) : ?>
+			if ($_GET[ self::key_flush ]=='true' || $this->status == 3) : ?>
 				<div class='updated settings-error'><p><strong><?php _e( "Cache flushed." , $this->plugin_constant ); ?></strong></p></div>
+			<?php endif;
+
+			/**
+			 * if options were saved, display saved message
+			 */
+			if ($_GET[ self::key_precache ]=='true' || $this->status == 4) : ?>
+			<div class='updated settings-error'><p><strong><?php _e( 'Precache process was started, it is now running in the background, please be patient, it may take a very long time to finish.' , $this->plugin_constant ) ?></strong></p></div>
+			<?php endif;
+
+			/**
+			 * if options were saved, display saved message
+			 */
+			if ( $_GET[ self::key_precache_disabled ]=='true' || $this->status == 5 || $this->shell_function == false ) : ?>
+				<div class='error'><p><strong><?php _e( "Precache functionality is disabled due to unavailable system call function. <br />Since precaching may take a very long time, it's done through a background CLI process in order not to run out of max execution time of PHP. Please enable one of the following functions if you whish to use precaching: " , $this->plugin_constant ) ?><?php echo join( ',' , $this->shell_possibilities ); ?></strong></p></div>
 			<?php endif;
 
 			/**
@@ -279,6 +349,7 @@ if ( ! class_exists( 'WP_FFPC' ) ) {
 					<li><a href="#<?php echo $this->plugin_constant ?>-exceptions" class="wp-switch-editor"><?php _e( 'Cache exceptions', $this->plugin_constant ); ?></a></li>
 					<li><a href="#<?php echo $this->plugin_constant ?>-memcached" class="wp-switch-editor"><?php _e( 'Memcache(d)', $this->plugin_constant ); ?></a></li>
 					<li><a href="#<?php echo $this->plugin_constant ?>-nginx" class="wp-switch-editor"><?php _e( 'nginx', $this->plugin_constant ); ?></a></li>
+					<li><a href="#<?php echo $this->plugin_constant ?>-precachelog" class="wp-switch-editor"><?php _e( 'Precache log', $this->plugin_constant ); ?></a></li>
 				</ul>
 
 				<fieldset id="<?php echo $this->plugin_constant ?>-type">
@@ -463,28 +534,54 @@ if ( ! class_exists( 'WP_FFPC' ) ) {
 				<pre><?php echo $this->nginx_example(); ?></pre>
 				</fieldset>
 
+				<fieldset id="<?php echo $this->plugin_constant ?>-precachelog">
+				<legend><?php _e('Log from previous pre-cache generation', $this->plugin_constant); ?></legend>
+					<?php
+					if ( @file_exists ( $this->precache_logfile ) ) :
+						$log = file ( $this->precache_logfile );
+						$head = explode( "\t", array_shift( $log ));
+						$gentime = filemtime ( $this->precache_logfile );
+					?>
+					<p><strong><?php _e( 'Time of run: ') ?><?php echo date('r', $gentime ); ?></strong></p>
+					<table style="width:100%; border: 1px solid #ccc;">
+						<thead><tr>
+							<th style="width:70%;"><?php echo $head[0]; ?></th>
+							<th style="width:15%;"><?php echo $head[1]; ?></th>
+							<th style="width:15%;"><?php echo $head[2]; ?></th>
+						</tr></thead>
+						<?php
+						foreach ( $log as $line ) :
+							$line = explode ( "\t", $line );
+						?>
+							<tr>
+								<td><?php echo $line[0]; ?></td>
+								<td><?php echo $line[1]; ?></td>
+								<td><?php echo $line[2]; ?></td>
+							</tr>
+						<?php
+						endforeach;
+						?>
+					</table>
+				<?php
+					else :
+						_e('No precache log was found!', $this->plugin_constant);
+					endif;
+				?></pre>
+				</fieldset>
+
 				<p class="clear">
 					<input class="button-primary" type="submit" name="<?php echo $this->button_save ?>" id="<?php echo $this->button_save ?>" value="<?php _e('Save Changes', $this->plugin_constant ) ?>" />
-					<input class="button-secondary" style="float: right" type="submit" name="<?php echo $this->button_delete ?>" id="<?php echo $this->button_delete ?>" value="<?php _e('Delete options from DB', $this->plugin_constant ) ?>" />
-					<input class="button-secondary" style="float: right" type="submit" name="<?php echo $this->button_flush ?>" id="<?php echo $this->button_flush ?>" value="<?php _e('Clear cache', $this->plugin_constant ) ?>" />
+					<?php $disabled = ( $this->shell_function == false ) ? 'disabled="disabled"' : '' ; ?>
+					<input <?php echo $disabled ?> class="button-primary" type="submit" name="<?php echo $this->button_precache ?>" id="<?php echo $this->button_precache ?>" value="<?php _e('Pre-cache post-like entries', $this->plugin_constant ) ?>" />
+
+					<input class="button-secondary error" style="float: right" type="submit" name="<?php echo $this->button_flush ?>" id="<?php echo $this->button_flush ?>" value="<?php _e('Clear cache', $this->plugin_constant ) ?>" />
+					<input class="button-secondary error" style="float: right" type="submit" name="<?php echo $this->button_delete ?>" id="<?php echo $this->button_delete ?>" value="<?php _e('Delete options from DB', $this->plugin_constant ) ?>" />
+
 				</p>
 
 			</form>
 			</div>
 			<?php
-		}
-
-		/**
-		 * extending admin init
-		 *
-		 */
-		public function plugin_hook_admin_init () {
-			/* save parameter updates, if there are any */
-			if ( isset( $_POST[ $this->button_flush ] ) ) {
-				$this->backend->clear();
-				$this->status = 3;
-				header( "Location: ". $this->settings_link . self::slug_flush );
-			}
 		}
 
 		/**
@@ -674,6 +771,105 @@ if ( ! class_exists( 'WP_FFPC' ) ) {
 			update_site_option( $this->global_option , $this->global_config );
 		}
 
+		/**
+		 * generate cache entry for every available permalink, might be very-very slow
+		 *
+		 */
+		private function precache () {
+			/* container for links to precache */
+			$links = array();
+
+			if ( $this->network ) {
+				$blog_list = get_blog_list( 0, 'all' );
+				foreach ($blog_list as $blog) {
+					$this->precache_list_permalinks ( $links, $blog['blog_id'] );
+				}
+			}
+			else {
+				$links = $this->precache_list_permalinks ( $links, false );
+			}
+
+			$tmpfile = tempnam(sys_get_temp_dir(), 'wp-ffpc');
+
+			$out .= '<?php
+				$links = ' . var_export ( $links , true ) . ';
+
+				echo "permalink\tgeneration time (s)\tsize ( kbyte )\n";
+				foreach ( $links as $permalink ) {
+					$starttime = explode ( " ", microtime() );
+					$starttime = $starttime[1] + $starttime[0];
+
+						$page = file_get_contents( $permalink );
+						$size = round ( ( strlen ( $page ) / 1024 ), 3 );
+
+					$endtime = explode ( " ", microtime() );
+					$endtime = ( $endtime[1] + $endtime[0] ) - $starttime;
+
+					echo $permalink . "\t" . $endtime . "\t" . $size . "\n";
+					unset ( $page, $size, $starttime, $endtime );
+					sleep( 1 );
+				}
+				unlink ( "'. $tmpfile .'" );
+			?>';
+
+			file_put_contents ( $tmpfile, $out  );
+			$shellfunction = $this->shell_function;
+			$shellfunction( 'php '. $tmpfile .' >'. $this->precache_logfile .' 2>&1 &' );
+		}
+
+
+		/**
+		 * gets all post-like entry permalinks for a site, returns values in passed-by-reference array
+		 *
+		 */
+		private function precache_list_permalinks ( &$links, $site = false ) {
+			global $post;
+			$current_blog = get_current_blog_id();
+			include_once ( ABSPATH . "wp-load.php" );
+
+			if ( $site !== false ) {
+				switch_to_blog( $site );
+			}
+
+			$args = array (
+				'post_type' => 'any',
+				'posts_per_page' => -1,
+				'post_status' => 'publish',
+			);
+
+			$posts = new WP_Query( $args );
+
+			while ( $posts->have_posts() ) {
+				$posts->the_post();
+
+				switch ($post->post_type) {
+					case 'revision':
+					case 'nav_menu_item':
+						break;
+					case 'page':
+						$permalink = get_page_link( $post->ID );
+						break;
+					case 'post':
+						$permalink = get_permalink( $post->ID );
+						break;
+					case 'attachment':
+						$permalink = get_attachment_link( $post->ID );
+						break;
+					default:
+						$permalink = get_post_permalink( $post->ID );
+					break;
+				}
+
+				$links[] = $permalink;
+
+			}
+
+			wp_reset_postdata();
+
+			if ( $site !== false ) {
+				switch_to_blog( $current_blog );
+			}
+		}
 	}
 }
 

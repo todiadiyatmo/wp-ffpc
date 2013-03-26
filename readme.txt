@@ -85,9 +85,10 @@ Please post feature requests to [WP-FFPC feature request topic](http://wordpress
 == Changelog ==
 
 = 1.1 =
-*2013.03.25*
+*under development*
 
 * added validate caching "noob" method: HTML comment option for cache engine & generation before closing "body" tag
+* pre-cache possibility
 * bugfix for status check ( there were situations where the status was not updated correctly )
 
 = 1.0 =
