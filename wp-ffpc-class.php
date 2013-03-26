@@ -786,10 +786,12 @@ if ( ! class_exists( 'WP_FFPC' ) ) {
 				}
 			}
 			else {
-				$links = $this->precache_list_permalinks ( $links, false );
+				$this->precache_list_permalinks ( $links, false );
 			}
 
 			$tmpfile = tempnam(sys_get_temp_dir(), 'wp-ffpc');
+
+			if ( !empty ( $links ) ) :
 
 			$out .= '<?php
 				$links = ' . var_export ( $links , true ) . ';
@@ -815,6 +817,8 @@ if ( ! class_exists( 'WP_FFPC' ) ) {
 			file_put_contents ( $tmpfile, $out  );
 			$shellfunction = $this->shell_function;
 			$shellfunction( 'php '. $tmpfile .' >'. $this->precache_logfile .' 2>&1 &' );
+
+			endif;
 		}
 
 
@@ -824,10 +828,10 @@ if ( ! class_exists( 'WP_FFPC' ) ) {
 		 */
 		private function precache_list_permalinks ( &$links, $site = false ) {
 			global $post;
-			$current_blog = get_current_blog_id();
 			include_once ( ABSPATH . "wp-load.php" );
 
 			if ( $site !== false ) {
+				$current_blog = get_current_blog_id();
 				switch_to_blog( $site );
 			}
 
