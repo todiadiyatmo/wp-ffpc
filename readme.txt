@@ -26,6 +26,7 @@ Supports PHP Memcached, PHP Memcache and APC as storage engines, subdomain and d
 * pingback HTTP header preservation
 * (optional) talkative log for troubleshooting
 * multiple memcached upstream support
+* possibility of precaching ( requires permalinks )
 
 Many thanks for supporters, testers & bug reporters: [Eric Gilette](http://www.ericgillette.com/ "Eric Gilette"); [doconeill](http://wordpress.org/support/profile/doconeill "doconeill"); [Mark Costlow](mailto:cheeks@swcp.com "Mark Costlow").
 
@@ -87,8 +88,8 @@ Please post feature requests to [WP-FFPC feature request topic](http://wordpress
 = 1.1 =
 *under development*
 
-* added validate caching "noob" method: HTML comment option for cache engine & generation before closing "body" tag
-* pre-cache possibility
+* HTML comment option for displaying cache info before closing "body" tag ( a.k.a make sure it works "noob" method )
+* precache engine
 * bugfix for status check ( there were situations where the status was not updated correctly )
 
 = 1.0 =

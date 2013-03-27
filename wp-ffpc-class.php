@@ -224,6 +224,7 @@ if ( ! class_exists( 'WP_FFPC' ) ) {
 			<script>
 				jQuery(document).ready(function($) {
 					jQuery( "#<?php echo $this->plugin_constant ?>-settings" ).tabs();
+					jQuery( "#<?php echo $this->plugin_constant ?>-commands" ).tabs();
 				});
 			</script>
 
@@ -264,13 +265,6 @@ if ( ! class_exists( 'WP_FFPC' ) ) {
 			 */
 			if ($_GET[ self::key_precache ]=='true' || $this->status == 4) : ?>
 			<div class='updated settings-error'><p><strong><?php _e( 'Precache process was started, it is now running in the background, please be patient, it may take a very long time to finish.' , $this->plugin_constant ) ?></strong></p></div>
-			<?php endif;
-
-			/**
-			 * if options were saved, display saved message
-			 */
-			if ( $_GET[ self::key_precache_disabled ]=='true' || $this->status == 5 || $this->shell_function == false ) : ?>
-				<div class='error'><p><strong><?php _e( "Precache functionality is disabled due to unavailable system call function. <br />Since precaching may take a very long time, it's done through a background CLI process in order not to run out of max execution time of PHP. Please enable one of the following functions if you whish to use precaching: " , $this->plugin_constant ) ?><?php echo join( ',' , $this->shell_possibilities ); ?></strong></p></div>
 			<?php endif;
 
 			/**
@@ -571,14 +565,55 @@ if ( ! class_exists( 'WP_FFPC' ) ) {
 
 				<p class="clear">
 					<input class="button-primary" type="submit" name="<?php echo $this->button_save ?>" id="<?php echo $this->button_save ?>" value="<?php _e('Save Changes', $this->plugin_constant ) ?>" />
-					<?php $disabled = ( $this->shell_function == false ) ? 'disabled="disabled"' : '' ; ?>
-					<input <?php echo $disabled ?> class="button-primary" type="submit" name="<?php echo $this->button_precache ?>" id="<?php echo $this->button_precache ?>" value="<?php _e('Pre-cache post-like entries', $this->plugin_constant ) ?>" />
-
-					<input class="button-secondary error" style="float: right" type="submit" name="<?php echo $this->button_flush ?>" id="<?php echo $this->button_flush ?>" value="<?php _e('Clear cache', $this->plugin_constant ) ?>" />
-					<input class="button-secondary error" style="float: right" type="submit" name="<?php echo $this->button_delete ?>" id="<?php echo $this->button_delete ?>" value="<?php _e('Delete options from DB', $this->plugin_constant ) ?>" />
-
 				</p>
 
+			</form>
+
+			<form method="post" action="#" id="<?php echo $this->plugin_constant ?>-commands" class="plugin-admin" style="padding-top:2em;">
+
+				<ul class="tabs">
+					<li><a href="#<?php echo $this->plugin_constant ?>-precache" class="wp-switch-editor"><?php _e( 'Precache', $this->plugin_constant ); ?></a></li>
+					<li><a href="#<?php echo $this->plugin_constant ?>-flush" class="wp-switch-editor"><?php _e( 'Empty cache', $this->plugin_constant ); ?></a></li>
+					<li><a href="#<?php echo $this->plugin_constant ?>-reset" class="wp-switch-editor"><?php _e( 'Reset settings', $this->plugin_constant ); ?></a></li>
+				</ul>
+
+				<fieldset id="<?php echo $this->plugin_constant ?>-precache">
+				<legend><?php _e( 'Precache', $this->plugin_constant ); ?></legend>
+				<dl>
+					<dt>
+						<?php if ( $_GET[ self::key_precache_disabled ]=='true' || $this->status == 5 || $this->shell_function == false ) : ?>
+							<strong><?php _e( "Precache functionality is disabled due to unavailable system call function. <br />Since precaching may take a very long time, it's done through a background CLI process in order not to run out of max execution time of PHP. Please enable one of the following functions if you whish to use precaching: " , $this->plugin_constant ) ?><?php echo join( ',' , $this->shell_possibilities ); ?></strong>
+						<?php else: ?>
+							<input class="button-secondary" type="submit" name="<?php echo $this->button_precache ?>" id="<?php echo $this->button_precache ?>" value="<?php _e('Pre-cache', $this->plugin_constant ) ?>" />
+						<?php endif; ?>
+					</dt>
+					<dd>
+						<span class="description"><?php _e('Start a background process that visits all permalinks of all blogs it can found thus forces WordPress to generate cached version of all the pages.', $this->plugin_constant); ?></span>
+					</dd>
+				</dl>
+				</fieldset>
+				<fieldset id="<?php echo $this->plugin_constant ?>-flush">
+				<legend><?php _e( 'Precache', $this->plugin_constant ); ?></legend>
+				<dl>
+					<dt>
+						<input class="button-warning" type="submit" name="<?php echo $this->button_flush ?>" id="<?php echo $this->button_flush ?>" value="<?php _e('Clear cache', $this->plugin_constant ) ?>" />
+					</dt>
+					<dd>
+						<span class="description"><?php _e ( "Clear all entries in the storage, including the ones that were set by other processes.", $this->plugin_constant ); ?> </span>
+					</dd>
+				</dl>
+				</fieldset>
+				<fieldset id="<?php echo $this->plugin_constant ?>-reset">
+				<legend><?php _e( 'Precache', $this->plugin_constant ); ?></legend>
+				<dl>
+					<dt>
+						<input class="button-warning" type="submit" name="<?php echo $this->button_delete ?>" id="<?php echo $this->button_delete ?>" value="<?php _e('Reset options', $this->plugin_constant ) ?>" />
+					</dt>
+					<dd>
+						<span class="description"><?php _e ( "Reset settings to defaults.", $this->plugin_constant ); ?> </span>
+					</dd>
+				</dl>
+				</fieldset>
 			</form>
 			</div>
 			<?php
@@ -772,27 +807,37 @@ if ( ! class_exists( 'WP_FFPC' ) ) {
 		}
 
 		/**
-		 * generate cache entry for every available permalink, might be very-very slow
+		 * generate cache entry for every available permalink, might be very-very slow,
+		 * therefore it starts a background process
 		 *
 		 */
 		private function precache () {
-			/* container for links to precache */
+			/* container for links to precache, well be accessed by reference */
 			$links = array();
 
+			/* when plugin is  network wide active, we need to pre-cache for all link of all blogs */
 			if ( $this->network ) {
+				/* list all blogs */
 				$blog_list = get_blog_list( 0, 'all' );
 				foreach ($blog_list as $blog) {
+					/* get permalinks for this blog */
 					$this->precache_list_permalinks ( $links, $blog['blog_id'] );
 				}
 			}
 			else {
+				/* no network, better */
 				$this->precache_list_permalinks ( $links, false );
 			}
 
+			/* temporary php file, will destroy itself after finish in order to clean up */
 			$tmpfile = tempnam(sys_get_temp_dir(), 'wp-ffpc');
 
+			/* double check if we do have any links to pre-cache */
 			if ( !empty ( $links ) ) :
 
+			/* this is the precacher php worker file: logs the links, their generation time and the generated content size
+			* writes the logfile and destroys itself afterwards
+			*/
 			$out .= '<?php
 				$links = ' . var_export ( $links , true ) . ';
 
@@ -815,6 +860,7 @@ if ( ! class_exists( 'WP_FFPC' ) ) {
 			?>';
 
 			file_put_contents ( $tmpfile, $out  );
+			/* call the precache worker file in the background */
 			$shellfunction = $this->shell_function;
 			$shellfunction( 'php '. $tmpfile .' >'. $this->precache_logfile .' 2>&1 &' );
 
@@ -827,25 +873,29 @@ if ( ! class_exists( 'WP_FFPC' ) ) {
 		 *
 		 */
 		private function precache_list_permalinks ( &$links, $site = false ) {
+			/* $post will be populated when running throught the posts */
 			global $post;
 			include_once ( ABSPATH . "wp-load.php" );
 
+			/* if a site id was provided, save current blog and change to the other site */
 			if ( $site !== false ) {
 				$current_blog = get_current_blog_id();
 				switch_to_blog( $site );
 			}
 
+			/* get all published posts */
 			$args = array (
 				'post_type' => 'any',
 				'posts_per_page' => -1,
 				'post_status' => 'publish',
 			);
-
 			$posts = new WP_Query( $args );
 
+			/* get all the posts, one by one  */
 			while ( $posts->have_posts() ) {
 				$posts->the_post();
 
+				/* get the permalink for currently selected post */
 				switch ($post->post_type) {
 					case 'revision':
 					case 'nav_menu_item':
@@ -864,12 +914,15 @@ if ( ! class_exists( 'WP_FFPC' ) ) {
 					break;
 				}
 
+				/* collect permalinks */
 				$links[] = $permalink;
 
 			}
 
+			/* just in case, reset $post */
 			wp_reset_postdata();
 
+			/* switch back to original site if we navigated away */
 			if ( $site !== false ) {
 				switch_to_blog( $current_blog );
 			}
