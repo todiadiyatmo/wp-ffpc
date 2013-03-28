@@ -28,7 +28,7 @@ Supports PHP Memcached, PHP Memcache and APC as storage engines, subdomain and d
 * multiple memcached upstream support
 * possibility of precaching ( requires permalinks )
 
-Many thanks for supporters, testers & bug reporters: [Eric Gilette](http://www.ericgillette.com/ "Eric Gilette"); [doconeill](http://wordpress.org/support/profile/doconeill "doconeill"); [Mark Costlow](mailto:cheeks@swcp.com "Mark Costlow").
+Many thanks for supporters, testers & bug reporters: [Harold Kyle](https://github.com/haroldkyle "Harold Kyle"); [Eric Gilette](http://www.ericgillette.com/ "Eric Gilette"); [doconeill](http://wordpress.org/support/profile/doconeill "doconeill"); [Mark Costlow](mailto:cheeks@swcp.com "Mark Costlow").
 
 Thanks for [Hyper Cache](http://wordpress.org/extend/plugins/hyper-cache "Hyper Cache") for beeing inspirational.
 
@@ -88,9 +88,19 @@ Please post feature requests to [WP-FFPC feature request topic](http://wordpress
 = 1.1 =
 *under development*
 
+What's new:
+
 * HTML comment option for displaying cache info before closing "body" tag ( a.k.a make sure it works "noob" method )
-* precache engine
+* Pre-cache Engine
+* new, additional invalidation method: clear post & all taxonomy cache
+
+What's fixed:
+
+* contributed fixes from [Harold Kyle](https://github.com/haroldkyle "Harold Kyle"): squelched various php and wp notices and warnings, enqueuing admin css and js better
 * bugfix for status check ( there were situations where the status was not updated correctly )
+* manual flush cache bug fixed ( was only flushing if the settings were on flush all )
+* bugfix on data & meta prefixes ( some places used hardcoded prefixes )
+* feed caching fixed ( due to a security check it turned out, feeds were excluded for a long time )
 
 = 1.0 =
 *2013.03.22*

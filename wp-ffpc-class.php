@@ -117,6 +117,7 @@ if ( ! class_exists( 'WP_FFPC' ) ) {
 			$this->select_invalidation_method = array (
 				0 => __( 'flush cache' , $this->plugin_constant ),
 				1 => __( 'only modified post' , $this->plugin_constant ),
+				2 => __( 'modified post and all taxonomies' , $this->plugin_constant ),
 			);
 
 		}
@@ -128,7 +129,7 @@ if ( ! class_exists( 'WP_FFPC' ) ) {
 		public function plugin_setup () {
 
 			/* initiate backend */
-			$this->backend = new WP_FFPC_Backend ( $this->options );
+			$this->backend = new WP_FFPC_Backend ( $this->options, $this->network );
 
 			/* get all available post types */
 			$post_types = get_post_types( );
@@ -187,7 +188,7 @@ if ( ! class_exists( 'WP_FFPC' ) ) {
 		public function plugin_hook_admin_init () {
 			/* save parameter updates, if there are any */
 			if ( isset( $_POST[ $this->button_flush ] ) ) {
-				$this->backend->clear();
+				$this->backend->clear( false, true );
 				$this->status = 3;
 				header( "Location: ". $this->settings_link . self::slug_flush );
 			}
@@ -382,7 +383,7 @@ if ( ! class_exists( 'WP_FFPC' ) ) {
 						<select name="invalidation_method" id="invalidation_method">
 							<?php $this->print_select_options ( $this->select_invalidation_method , $this->options['invalidation_method'] ) ?>
 						</select>
-						<span class="description"><?php _e('Select cache invalidation method. <p><strong>Be careful! Selecting "flush cache" will flush the whole cache, including elements that might have been set and used by other applications. Also, invalidating only the post will _not_ clear categories, archive and taxonomy pages, therefore only use this if refreshing after publish can wait until the entries expire on their own.</strong></p>', $this->plugin_constant); ?></span>
+						<span class="description"><?php _e('Select cache invalidation method. <ol><li><em>flush cache</em> - clears everything in storage, <strong>including values set by other applications</strong></li><li><em>only modified post</em> - clear only the modified posts entry, everything else remains in cache</li><li><em>modified post and all taxonomies</em> - removes all taxonomy term cache ( categories, tags, home, etc ) and the modified post as well</li></ol>', $this->plugin_constant); ?></span>
 					</dd>
 
 					<dt>
@@ -588,7 +589,7 @@ if ( ! class_exists( 'WP_FFPC' ) ) {
 						<?php endif; ?>
 					</dt>
 					<dd>
-						<span class="description"><?php _e('Start a background process that visits all permalinks of all blogs it can found thus forces WordPress to generate cached version of all the pages.', $this->plugin_constant); ?></span>
+						<span class="description"><?php _e('Start a background process that visits all permalinks of all blogs it can found thus forces WordPress to generate cached version of all the pages.<br />The plugin tries to visit links of taxonomy terms without the taxonomy name as well. This may generate 404 hits, please be prepared for these in your logfiles if you plan to pre-cache.', $this->plugin_constant); ?></span>
 					</dd>
 				</dl>
 				</fieldset>
@@ -843,7 +844,7 @@ if ( ! class_exists( 'WP_FFPC' ) ) {
 				$links = ' . var_export ( $links , true ) . ';
 
 				echo "permalink\tgeneration time (s)\tsize ( kbyte )\n";
-				foreach ( $links as $permalink ) {
+				foreach ( $links as $permalink => $dummy ) {
 					$starttime = explode ( " ", microtime() );
 					$starttime = $starttime[1] + $starttime[0];
 
@@ -882,7 +883,14 @@ if ( ! class_exists( 'WP_FFPC' ) ) {
 			if ( $site !== false ) {
 				$current_blog = get_current_blog_id();
 				switch_to_blog( $site );
+
+				$url = get_blog_option ( $site, 'siteurl' );
+				if ( substr( $url, -1) !== '/' )
+					$url = $url . '/';
+
+				$links[ $url ] = true;
 			}
+
 
 			/* get all published posts */
 			$args = array (
@@ -916,9 +924,12 @@ if ( ! class_exists( 'WP_FFPC' ) ) {
 				}
 
 				/* collect permalinks */
-				$links[] = $permalink;
+				$links[ $permalink ] = true;
 
 			}
+
+			//$this->taxonomy_links ( $links );
+			$this->backend->taxonomy_links ( $links );
 
 			/* just in case, reset $post */
 			wp_reset_postdata();
@@ -928,6 +939,7 @@ if ( ! class_exists( 'WP_FFPC' ) ) {
 				switch_to_blog( $current_blog );
 			}
 		}
+
 	}
 }
 

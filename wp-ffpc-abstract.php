@@ -132,15 +132,15 @@ if (!class_exists('WP_Plugins_Abstract')) {
 
 			/* register settings pages */
 			if ( $this->network )
-				add_filter( "network_admin_plugin_action_links_" . $this->plugin_file, array( $this, 'plugin_settings_link' ) );
+				add_filter( "network_admin_plugin_action_links_" . $this->plugin_file, array( &$this, 'plugin_settings_link' ) );
 			else
-				add_filter( "plugin_action_links_" . $this->plugin_file, array( $this, 'plugin_settings_link' ) );
+				add_filter( "plugin_action_links_" . $this->plugin_file, array( &$this, 'plugin_settings_link' ) );
 
 			/* register admin init, catches $_POST and adds submenu to admin menu */
 			if ( $this->network )
-				add_action('network_admin_menu', array( $this , 'plugin_admin_init') );
+				add_action('network_admin_menu', array( &$this , 'plugin_admin_init') );
 			else
-				add_action('admin_menu', array( $this , 'plugin_admin_init') );
+				add_action('admin_menu', array( &$this , 'plugin_admin_init') );
 		}
 
 		/**
@@ -199,7 +199,7 @@ if (!class_exists('WP_Plugins_Abstract')) {
 			$this->broadcast_message = @file_get_contents( $this->broadcast_message );
 
 			/* add submenu to settings pages */
-			add_submenu_page( $this->settings_slug, $this->plugin_name . __( ' options' , $this->plugin_constant ), $this->plugin_name, $this->capability, $this->plugin_settings_page, array ( $this , 'plugin_admin_panel' ) );
+			add_submenu_page( $this->settings_slug, $this->plugin_name . __( ' options' , $this->plugin_constant ), $this->plugin_name, $this->capability, $this->plugin_settings_page, array ( &$this , 'plugin_admin_panel' ) );
 		}
 
 		/**
