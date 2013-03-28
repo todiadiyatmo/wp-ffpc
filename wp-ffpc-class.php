@@ -242,28 +242,28 @@ if ( ! class_exists( 'WP_FFPC' ) ) {
 			/**
 			 * if options were saved, display saved message
 			 */
-			if ($_GET[ self::key_save ]=='true' || $this->status == 1) : ?>
+			if (isset($_GET[ self::key_save ]) && $_GET[ self::key_save ]=='true' || $this->status == 1) : ?>
 				<div class='updated settings-error'><p><strong><?php _e( 'Settings saved.' , $this->plugin_constant ) ?></strong></p></div>
 			<?php endif;
 
 			/**
 			 * if options were delete, display delete message
 			 */
-			if ($_GET[ self::key_delete ]=='true' || $this->status == 2) : ?>
+			if (isset($_GET[ self::key_delete ]) && $_GET[ self::key_delete ]=='true' || $this->status == 2) : ?>
 				<div class='error'><p><strong><?php _e( 'Plugin options deleted.' , $this->plugin_constant ) ?></strong></p></div>
 			<?php endif;
 
 			/**
 			 * if options were saved
 			 */
-			if ($_GET[ self::key_flush ]=='true' || $this->status == 3) : ?>
+			if (isset($_GET[ self::key_flush ]) && $_GET[ self::key_flush ]=='true' || $this->status == 3) : ?>
 				<div class='updated settings-error'><p><strong><?php _e( "Cache flushed." , $this->plugin_constant ); ?></strong></p></div>
 			<?php endif;
 
 			/**
 			 * if options were saved, display saved message
 			 */
-			if ($_GET[ self::key_precache ]=='true' || $this->status == 4) : ?>
+			if (isset($_GET[ self::key_precache ]) && $_GET[ self::key_precache ]=='true' || $this->status == 4) : ?>
 			<div class='updated settings-error'><p><strong><?php _e( 'Precache process was started, it is now running in the background, please be patient, it may take a very long time to finish.' , $this->plugin_constant ) ?></strong></p></div>
 			<?php endif;
 
@@ -769,6 +769,7 @@ if ( ! class_exists( 'WP_FFPC' ) ) {
 
 			/* set upstream servers from configured servers, best to get from the actual backend */
 			$servers = $this->backend->get_servers();
+			$nginx_servers = '';
 			foreach ( array_keys( $servers ) as $server ) {
 				$nginx_servers .= "		server ". $server .";\n";
 			}

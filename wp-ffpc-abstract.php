@@ -123,26 +123,12 @@ if (!class_exists('WP_Plugins_Abstract')) {
 			/* setup plugin, plugin specific setup functions that need options */
 			$this->plugin_setup();
 
-			/* add admin styling */
-			if( is_admin() ) {
-				/* jquery ui tabs is provided by WordPress */
-				wp_enqueue_script ( "jquery-ui-tabs" );
-				wp_enqueue_script ( "jquery-ui-slider" );
 
-				/* additional admin styling */
-				$css_handle = $this->plugin_constant . '-admin-css';
-				$css_file = $this->plugin_constant . '-admin.css';
-				if ( @file_exists ( $this->plugin_dir . $css_file ) )
-				{
-					$css_src = $this->plugin_url . $css_file;
-					wp_register_style( $css_handle, $css_src, false, false, 'all' );
-					wp_enqueue_style( $css_handle );
-				}
-			}
+			add_action( 'admin_enqueue_scripts', array(&$this,'enqueue_admin_css_js'));
 
-			register_activation_hook( $this->plugin_file , array( $this , 'plugin_activate') );
-			register_deactivation_hook( $this->plugin_file , array( $this , 'plugin_deactivate') );
-			register_uninstall_hook( $this->plugin_file , array( $this , 'plugin_uninstall') );
+			register_activation_hook( $this->plugin_file , 'plugin_activate' );
+			register_deactivation_hook( $this->plugin_file , 'plugin_deactivate' );
+			register_uninstall_hook( $this->plugin_file , 'plugin_uninstall' );
 
 			/* register settings pages */
 			if ( $this->network )
@@ -232,6 +218,23 @@ if (!class_exists('WP_Plugins_Abstract')) {
 			$settings_link = '<a href="' . $this->settings_link . '">' . __( 'Settings', $this->plugin_constant ) . '</a>';
 			array_unshift( $links, $settings_link );
 			return $links;
+		}
+
+		/* add admin styling */
+		public function enqueue_admin_css_js(){
+			/* jquery ui tabs is provided by WordPress */
+			wp_enqueue_script ( "jquery-ui-tabs" );
+			wp_enqueue_script ( "jquery-ui-slider" );
+
+			/* additional admin styling */
+			$css_handle = $this->plugin_constant . '-admin-css';
+			$css_file = $this->plugin_constant . '-admin.css';
+			if ( @file_exists ( $this->plugin_dir . $css_file ) )
+			{
+				$css_src = $this->plugin_url . $css_file;
+				wp_register_style( $css_handle, $css_src, false, false, 'all' );
+				wp_enqueue_style( $css_handle );
+			}
 		}
 
 		/**
@@ -462,6 +465,7 @@ if (!class_exists('WP_Plugins_Abstract')) {
 			else
 				$check_disabled = false;
 
+			$opt = '';
 			foreach ($elements as $value => $name ) {
 				//$disabled .= ( @array_key_exists( $valid[ $value ] ) && $valid[ $value ] == false ) ? ' disabled="disabled"' : '';
 				$opt .= '<option value="' . $value . '" ';

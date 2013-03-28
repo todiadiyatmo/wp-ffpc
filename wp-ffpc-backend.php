@@ -305,7 +305,7 @@ if (!class_exists('WP_FFPC_Backend')) {
 					//throw new Exception ( $message );
 				break;
 				default:
-					if ( function_exists( 'syslog' ) && $this->options['debug'] )
+					if ( function_exists( 'syslog' ) && isset($this->options['debug']) && $this->options['debug'] )
 						syslog( $log_level , self::plugin_constant . " with " . $this->options['cache_type'] . ' ' . $message );
 				break;
 			}
