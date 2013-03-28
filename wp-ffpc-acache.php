@@ -250,7 +250,7 @@ function wp_ffpc_callback( $buffer ) {
 		$meta['pingback'] = get_bloginfo('pingback_url');
 
 	/* sync all http and https requests if enabled */
-	if ( $config['sync_protocols'] == '1' )	{
+	if ( isset( $config['sync_protocols'] ) && $config['sync_protocols'] == '1' )	{
 		if ( isset( $_SERVER['HTTP_X_FORWARDED_PROTO'] ) && $_SERVER['HTTP_X_FORWARDED_PROTO'] == 'https' )
 			$_SERVER['HTTPS'] = 'on';
 
