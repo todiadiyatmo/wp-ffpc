@@ -136,17 +136,17 @@ if ( ! class_exists( 'WP_FFPC' ) ) {
 
 			/* cache invalidation hooks */
 			foreach ( $post_types as $post_type ) {
-				add_action( 'new_to_publish_' .$post_type , array( $this->backend , 'clear' ), 0 );
-				add_action( 'draft_to_publish' .$post_type , array( $this->backend , 'clear' ), 0 );
-				add_action( 'pending_to_publish' .$post_type , array( $this->backend , 'clear' ), 0 );
-				add_action( 'private_to_publish' .$post_type , array( $this->backend , 'clear' ), 0 );
-				add_action( 'publish_' . $post_type , array( $this->backend , 'clear' ), 0 );
+				add_action( 'new_to_publish_' .$post_type , array( &$this->backend , 'clear' ), 0 );
+				add_action( 'draft_to_publish' .$post_type , array( &$this->backend , 'clear' ), 0 );
+				add_action( 'pending_to_publish' .$post_type , array( &$this->backend , 'clear' ), 0 );
+				add_action( 'private_to_publish' .$post_type , array( &$this->backend , 'clear' ), 0 );
+				add_action( 'publish_' . $post_type , array( &$this->backend , 'clear' ), 0 );
 			}
 
 			/* invalidation on some other ocasions as well */
-			add_action( 'switch_theme', array( $this->backend , 'clear' ), 0 );
-			add_action( 'deleted_post', array( $this->backend , 'clear' ), 0 );
-			add_action( 'edit_post', array( $this->backend , 'clear' ), 0 );
+			add_action( 'switch_theme', array( &$this->backend , 'clear' ), 0 );
+			add_action( 'deleted_post', array( &$this->backend , 'clear' ), 0 );
+			add_action( 'edit_post', array( &$this->backend , 'clear' ), 0 );
 
 			/* add filter for catching canonical redirects */
 			add_filter('redirect_canonical', 'wp_ffpc_redirect_callback', 10, 2);
