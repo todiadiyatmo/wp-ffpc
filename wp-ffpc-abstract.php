@@ -114,33 +114,10 @@ if (!class_exists('WP_Plugins_Abstract')) {
 			/* set the settings page link string */
 			$this->settings_link = $this->settings_slug . '?page=' .  $this->plugin_settings_page;
 
-			/* initialize plugin, plugin specific init functions */
-			$this->plugin_init();
-
-			/* get the options */
-			$this->plugin_options_read();
-
-			/* setup plugin, plugin specific setup functions that need options */
-			$this->plugin_setup();
-
+			add_action( 'init', array(&$this,'init'));
 
 			add_action( 'admin_enqueue_scripts', array(&$this,'enqueue_admin_css_js'));
 
-			register_activation_hook( $this->plugin_file , 'plugin_activate' );
-			register_deactivation_hook( $this->plugin_file , 'plugin_deactivate' );
-			register_uninstall_hook( $this->plugin_file , 'plugin_uninstall' );
-
-			/* register settings pages */
-			if ( $this->network )
-				add_filter( "network_admin_plugin_action_links_" . $this->plugin_file, array( &$this, 'plugin_settings_link' ) );
-			else
-				add_filter( "plugin_action_links_" . $this->plugin_file, array( &$this, 'plugin_settings_link' ) );
-
-			/* register admin init, catches $_POST and adds submenu to admin menu */
-			if ( $this->network )
-				add_action('network_admin_menu', array( &$this , 'plugin_admin_init') );
-			else
-				add_action('admin_menu', array( &$this , 'plugin_admin_init') );
 		}
 
 		/**
@@ -207,6 +184,36 @@ if (!class_exists('WP_Plugins_Abstract')) {
 		 *
 		 */
 		abstract function plugin_hook_admin_init();
+
+
+		public function init(){
+			/* initialize plugin, plugin specific init functions */
+			$this->plugin_init();
+
+			/* get the options */
+			$this->plugin_options_read();
+
+			/* setup plugin, plugin specific setup functions that need options */
+			$this->plugin_setup();
+
+			register_activation_hook( $this->plugin_file , 'plugin_activate' );
+			register_deactivation_hook( $this->plugin_file , 'plugin_deactivate' );
+			register_uninstall_hook( $this->plugin_file , 'plugin_uninstall' );
+
+			/* register settings pages */
+			if ( $this->network )
+				add_filter( "network_admin_plugin_action_links_" . $this->plugin_file, array( &$this, 'plugin_settings_link' ) );
+			else
+				add_filter( "plugin_action_links_" . $this->plugin_file, array( &$this, 'plugin_settings_link' ) );
+
+			/* register admin init, catches $_POST and adds submenu to admin menu */
+			if ( $this->network )
+				add_action('network_admin_menu', array( &$this , 'plugin_admin_init') );
+			else
+				add_action('admin_menu', array( &$this , 'plugin_admin_init') );
+
+
+		}
 
 		/**
 		 * callback function to add settings link to plugins page
