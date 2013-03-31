@@ -78,10 +78,10 @@ if ( $wp_ffpc_backend->status() === false )
 	return false;
 
 /* try to get data & meta keys for current page */
-$wp_ffpc_keys = array ( $wp_ffpc_config['prefix_meta'], $wp_ffpc_config['prefix_data'] );
+$wp_ffpc_keys = array ( 'meta' => $wp_ffpc_config['prefix_meta'], 'data' => $wp_ffpc_config['prefix_data'] );
 $wp_ffpc_values = array();
 
-foreach ( $wp_ffpc_keys as $key ) {
+foreach ( $wp_ffpc_keys as $internal => $key ) {
 	$value = $wp_ffpc_backend->get ( $wp_ffpc_backend->key ( $key ) );
 
 	if ( ! $value ) {
@@ -91,7 +91,7 @@ foreach ( $wp_ffpc_keys as $key ) {
 	}
 	else {
 		/* store results */
-		$wp_ffpc_values[ $key ] = $value;
+		$wp_ffpc_values[ $internal ] = $value;
 	}
 }
 
