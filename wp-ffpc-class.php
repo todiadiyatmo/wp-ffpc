@@ -365,7 +365,7 @@ if ( ! class_exists( 'WP_FFPC' ) ) {
 					</dt>
 					<dd>
 						<input type="number" name="expire" id="expire" value="<?php echo $this->options['expire']; ?>" />
-						<span class="description"><?php _e('Sets validity time of entry in milliseconds', $this->plugin_constant); ?></span>
+						<span class="description"><?php _e('Sets validity time of entry in seconds', $this->plugin_constant); ?></span>
 					</dd>
 
 					<dt>
@@ -391,7 +391,7 @@ if ( ! class_exists( 'WP_FFPC' ) ) {
 					</dt>
 					<dd>
 						<input type="text" name="prefix_data" id="prefix_data" value="<?php echo $this->options['prefix_data']; ?>" />
-						<span class="description"><?php _e('Prefix for HTML content keys, can be used in nginx.', $this->plugin_constant); ?></span>
+						<span class="description"><?php _e('Prefix for HTML content keys, can be used in nginx. If you are caching with nginx, you should update your nginx configuration and restart nginx after changing this value.', $this->plugin_constant); ?></span>
 					</dd>
 
 					<dt>
