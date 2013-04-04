@@ -91,16 +91,17 @@ Please post feature requests to [WP-FFPC feature request topic](http://wordpress
 What's new:
 
 * HTML comment option for displaying cache info before closing "body" tag ( a.k.a make sure it works "noob" method )
-* Pre-cache Engine
-* new, additional invalidation method: clear post & all taxonomy cache
+* introducing the Pre-cache Engine ( only manual pre-cache is enabled for now )
+* new, additional invalidation method: clear post & all taxonomy cache, including feeds
+* full virtual server example to use the plugin with nginx ( originally it was only a snippet required to use the plugin )
 
 What's fixed:
 
-* contributed fixes from [Harold Kyle](https://github.com/haroldkyle "Harold Kyle"): squelched various php and wp notices and warnings, enqueuing admin css and js better
+* contributed fixes from [Harold Kyle](https://github.com/haroldkyle "Harold Kyle"): squelched various php and wp notices and warnings, enqueuing admin css and js better, better admin panel descriptions
 * bugfix for status check ( there were situations where the status was not updated correctly )
 * manual flush cache bug fixed ( was only flushing if the settings were on flush all )
 * bugfix on data & meta prefixes ( some places used hardcoded prefixes )
-* feed caching fixed ( due to a security check it turned out, feeds were excluded for a long time )
+* feed caching fixed ( due to a security check it turned out feeds were excluded for a long time )
 
 = 1.0 =
 *2013.03.22*
