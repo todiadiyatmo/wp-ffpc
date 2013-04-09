@@ -264,7 +264,7 @@ if ( ! class_exists( 'WP_FFPC' ) ) {
 			/**
 			 * if options were saved, display saved message
 			 */
-			if (isset($_GET[ self::key_precache ]) && $_GET[ self::key_precache ]=='true' || $this->status == 4) : ?>
+			if ( ( isset($_GET[ self::key_precache ]) && $_GET[ self::key_precache ]=='true' ) || $this->status == 4) : ?>
 			<div class='updated settings-error'><p><strong><?php _e( 'Precache process was started, it is now running in the background, please be patient, it may take a very long time to finish.' , $this->plugin_constant ) ?></strong></p></div>
 			<?php endif;
 
