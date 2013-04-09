@@ -65,7 +65,7 @@ if (!class_exists('WP_Plugins_Abstract')) {
 		protected $donation_link;
 		protected $button_save;
 		protected $button_delete;
-		protected $capability = 10;
+		protected $capability = 'manage_options';
 		protected $donation_business_name;
 		protected $donation_item_name;
 		protected $broadcast_message;
