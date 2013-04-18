@@ -766,8 +766,8 @@ if ( ! class_exists( 'WP_FFPC' ) ) {
 				}';
 
 			/* replace the data prefix with the configured one */
-			$to_replace = array ( 'DATAPREFIX' , 'SERVERROOT' );
-			$replace_with = array ( $this->options['prefix_data'], ABSPATH );
+			$to_replace = array ( 'DATAPREFIX' , 'SERVERROOT', 'SERVERLOG' );
+			$replace_with = array ( $this->options['prefix_data'], ABSPATH, $_SERVER['SERVER_NAME'] );
 			$nginx = str_replace ( $to_replace , $replace_with , $nginx );
 
 			/* set upstream servers from configured servers, best to get from the actual backend */

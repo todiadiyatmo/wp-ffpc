@@ -377,14 +377,18 @@ if (!class_exists('WP_Plugins_Abstract')) {
 
 			switch ( $log_level ) {
 				case LOG_ERR :
-					if ( function_exists( 'syslog' ) )
+					if ( function_exists( 'syslog' ) && function_exists ( 'openlog' ) ) {
+						openlog('wordpress('.$_SERVER['HTTP_HOST'].')',LOG_NDELAY|LOG_PID,LOG_SYSLOG);
 						syslog( $log_level , self::plugin_constant . $message );
+					}
 					/* error level is real problem, needs to be displayed on the admin panel */
 					throw new Exception ( $message );
 				break;
 				default:
-					if ( function_exists( 'syslog' ) && $this->config['debug'] )
+					if ( function_exists( 'syslog' ) && function_exists ( 'openlog' ) && $this->config['debug'] ) {
+						openlog('wordpress('.$_SERVER['HTTP_HOST'].')',LOG_NDELAY|LOG_PID,LOG_SYSLOG);
 						syslog( $log_level , self::plugin_constant . $message );
+					}
 				break;
 			}
 
