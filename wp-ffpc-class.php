@@ -391,7 +391,7 @@ if ( ! class_exists( 'WP_FFPC' ) ) {
 					</dt>
 					<dd>
 						<input type="text" name="prefix_data" id="prefix_data" value="<?php echo $this->options['prefix_data']; ?>" />
-						<span class="description"><?php _e('Prefix for HTML content keys, can be used in nginx.<br>If you are caching with nginx, you should update your nginx configuration and reload nginx after changing this value.', $this->plugin_constant); ?></span>
+						<span class="description"><?php _e('Prefix for HTML content keys, can be used in nginx. If you are caching with nginx, you should update your nginx configuration and restart nginx after changing this value.', $this->plugin_constant); ?></span>
 					</dd>
 
 					<dt>
@@ -420,7 +420,7 @@ if ( ! class_exists( 'WP_FFPC' ) ) {
 					</dt>
 					<dd>
 						<input type="checkbox" name="log_info" id="log_info" value="1" <?php checked($this->options['log_info'],true); ?> />
-						<span class="description"><?php _e('Enables INFO level messages; careful, plugin is really talkative. Requires PHP syslog function.', $this->plugin_constant); ?></span>
+						<span class="description"><?php _e('Enables INFO level messages; carefull, plugin is really talkative. Requires PHP syslog function.', $this->plugin_constant); ?></span>
 					</dd>
 
 					<dt>
@@ -440,7 +440,7 @@ if ( ! class_exists( 'WP_FFPC' ) ) {
 					</dd>
 
 					<dt>
-						<label for="sync_protocols"><?php _e("Enable sync protocols", $this->plugin_constant); ?></label>
+						<label for="sync_protocols"><?php _e("Enable sync protocolls", $this->plugin_constant); ?></label>
 					</dt>
 					<dd>
 						<input type="checkbox" name="sync_protocols" id="sync_protocols" value="1" <?php checked($this->options['sync_protocols'],true); ?> />
@@ -501,14 +501,6 @@ if ( ! class_exists( 'WP_FFPC' ) ) {
 						<input type="checkbox" name="nocache_page" id="nocache_page" value="1" <?php checked($this->options['nocache_page'],true); ?> />
 						<span class="description"><?php _e('Exclude pages from caching.', $this->plugin_constant); ?></span>
 					</dd>
-
-					<dt>
-						<label for="nocache_cookies"><?php _e("Don't cache cookies", $this->plugin_constant); ?></label>
-					</dt>
-					<dd>
-						<input type="text" name="nocache_cookies" id="nocache_cookies" value="<?php if(isset( $this->options['nocache_cookies'] ) ) echo $this->options['nocache_cookies']; ?>" />
-						<span class="description"><?php _e('Exclude cookies names starting with this from caching. Separate multiple cookies names with commas.<br>If you are caching with nginx, you should update your nginx configuration and reload nginx after changing this value.', $this->plugin_constant); ?></span>
-					</dd>
 				</dl>
 				</fieldset>
 
@@ -527,7 +519,7 @@ if ( ! class_exists( 'WP_FFPC' ) ) {
 					</dt>
 					<dd>
 						<input type="checkbox" name="persistent" id="persistent" value="1" <?php checked($this->options['persistent'],true); ?> />
-						<span class="description"><?php _e('Make all memcache(d) connections persistent. Be careful with this setting, always test the outcome.', $this->plugin_constant); ?></span>
+						<span class="description"><?php _e('Make all memcache(d) connections persistent. Be carefull with this setting, always test the outcome.', $this->plugin_constant); ?></span>
 					</dd>
 				</dl>
 				</fieldset>
@@ -791,27 +783,6 @@ if ( ! class_exists( 'WP_FFPC' ) ) {
 				$nginx = str_replace ( 'LOGGEDIN_EXCEPTION' , $loggedin , $nginx );
 			else
 				$nginx = str_replace ( 'LOGGEDIN_EXCEPTION' , '' , $nginx );
-
-			/* nginx can skip caching for visitors with certain cookies specified in the options */
-			if( $this->options['nocache_cookies'] ) {
-				$cookies = str_replace( ",","|", $this->options['nocache_cookies'] );
-				$cookies = str_replace( " ","", $cookies );
-				$cookie_exception = '# avoid cache for cookies specified
-				if ($http_cookie ~* ' . $cookies . ' ) {
-					set $memcached_request 0;
-				}';
-				$nginx = str_replace ( 'COOKIES_EXCEPTION' , $cookie_exception , $nginx );
-			} else {
-				$nginx = str_replace ( 'COOKIES_EXCEPTION' , '' , $nginx );
-			}
-
-			/* add custom response header if specified in the options */
-			if( $this->options['response_header'] ){
-				$response_header =  'add_header X-Cache-Engine "WP-FFPC with ' . $this->options['cache_type'] .' via nginx";';
-				$nginx = str_replace ( 'RESPONSE_HEADER' , $response_header , $nginx );
-			} else{
-				$nginx = str_replace ( 'RESPONSE_HEADER' , '' , $nginx );
-			}
 
 			return $nginx;
 		}

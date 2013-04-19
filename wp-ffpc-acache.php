@@ -53,33 +53,16 @@ else
 	return false;
 
 /* no cache for for logged in users normally, only if enabled */
-if ( $wp_ffpc_config['cache_loggedin'] == 0  ||  $wp_ffpc_config['nocache_cookies'] ) {
-
-	$nocache_cookies = array();
-	if( $wp_ffpc_config['nocache_cookies'] ){
-		$nocache_cookies = array_map('trim',explode(",", $wp_ffpc_config['nocache_cookies'] ) );
-	}
-
+if ( $wp_ffpc_config['cache_loggedin'] == 0 ) {
 	foreach ($_COOKIE as $n=>$v) {
 		// test cookie makes to cache not work!!!
 		if ($n == 'wordpress_test_cookie') continue;
 		// wp 2.5 and wp 2.3 have different cookie prefix, skip cache if a post password cookie is present, also
-		if ( $wp_ffpc_config['cache_loggedin'] == 0 ) {
-			if ( (substr($n, 0, 14) == 'wordpressuser_' || substr($n, 0, 10) == 'wordpress_' || substr($n, 0, 12) == 'wp-postpass_') && !$wp_ffpc_config['cache_loggedin'] ) {
-				return false;
-			}
-		}
-		/* check for any matches to user-added cookies to no-cache */
-		if ( ! empty( $nocache_cookies ) ){
-			foreach ( $nocache_cookies as $nocache_cookie ) {
-				if( strpos( $n, $nocache_cookie ) === 0 ) {
-					return false;
-				}
-			}
+		if ( (substr($n, 0, 14) == 'wordpressuser_' || substr($n, 0, 10) == 'wordpress_' || substr($n, 0, 12) == 'wp-postpass_') && !$wp_ffpc_config['cache_loggedin'] ) {
+			return false;
 		}
 	}
 }
-
 
 /* canonical redirect storage */
 $wp_ffpc_redirect = null;
@@ -163,7 +146,7 @@ if ( !empty( $wp_ffpc_values['meta']['pingback'] ) )
 
 /* for debugging */
 if ( $wp_ffpc_config['response_header'] )
-	header( 'X-Cache-Engine: WP-FFPC with ' . $wp_ffpc_config['cache_type'] .' via PHP');
+	header( 'X-Cache-Engine: WP-FFPC with ' . $wp_ffpc_config['cache_type'] );
 
 /* HTML data */
 echo $wp_ffpc_values['data'];
