@@ -96,14 +96,14 @@ foreach ( $wp_ffpc_keys as $internal => $key ) {
 }
 
 /* serve cache 404 status */
-if ( $wp_ffpc_values['meta']['status'] == 404 ) {
+if ( isset( $wp_ffpc_values['meta']['status'] ) &&  $wp_ffpc_values['meta']['status'] == 404 ) {
 	header("HTTP/1.1 404 Not Found");
 	flush();
 	die();
 }
 
 /* server redirect cache */
-if ( $wp_ffpc_values['meta']['redirect'] ) {
+if ( isset( $wp_ffpc_values['meta']['redirect'] ) && $wp_ffpc_values['meta']['redirect'] ) {
 	header('Location: ' . $wp_ffpc_values['meta']['redirect'] );
 	flush();
 	die();

@@ -264,7 +264,7 @@ if ( ! class_exists( 'WP_FFPC' ) ) {
 			/**
 			 * if options were saved, display saved message
 			 */
-			if (isset($_GET[ self::key_precache ]) && $_GET[ self::key_precache ]=='true' || $this->status == 4) : ?>
+			if ( ( isset($_GET[ self::key_precache ]) && $_GET[ self::key_precache ]=='true' ) || $this->status == 4) : ?>
 			<div class='updated settings-error'><p><strong><?php _e( 'Precache process was started, it is now running in the background, please be patient, it may take a very long time to finish.' , $this->plugin_constant ) ?></strong></p></div>
 			<?php endif;
 
@@ -582,7 +582,7 @@ if ( ! class_exists( 'WP_FFPC' ) ) {
 				<legend><?php _e( 'Precache', $this->plugin_constant ); ?></legend>
 				<dl>
 					<dt>
-						<?php if ( $_GET[ self::key_precache_disabled ]=='true' || $this->status == 5 || $this->shell_function == false ) : ?>
+						<?php if ( isset( $_GET[ self::key_precache_disabled ] ) && $_GET[ self::key_precache_disabled ] =='true' || $this->status == 5 || $this->shell_function == false ) : ?>
 							<strong><?php _e( "Precache functionality is disabled due to unavailable system call function. <br />Since precaching may take a very long time, it's done through a background CLI process in order not to run out of max execution time of PHP. Please enable one of the following functions if you whish to use precaching: " , $this->plugin_constant ) ?><?php echo join( ',' , $this->shell_possibilities ); ?></strong>
 						<?php else: ?>
 							<input class="button-secondary" type="submit" name="<?php echo $this->button_precache ?>" id="<?php echo $this->button_precache ?>" value="<?php _e('Pre-cache', $this->plugin_constant ) ?>" />
