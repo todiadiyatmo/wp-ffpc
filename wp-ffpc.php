@@ -49,7 +49,7 @@ $wp_ffpc_defaults = array (
 	'generate_time' => false,
 );
 
-$wp_ffpc = new WP_FFPC ( 'wp-ffpc', '1.0', 'WP-FFPC', $wp_ffpc_defaults, 'https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=XU3DG7LLA76WC' );
+$wp_ffpc = new WP_FFPC ( 'wp-ffpc', '1.1', 'WP-FFPC', $wp_ffpc_defaults, 'https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=XU3DG7LLA76WC' );
 
 
 ?>
