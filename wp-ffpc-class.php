@@ -12,7 +12,7 @@
 if ( ! class_exists( 'WP_FFPC' ) ) {
 
 	/* get the plugin abstract class*/
-	include_once ( 'wp-ffpc-abstract.php');
+	include_once ( 'common/wp-plugin-abstract.phpp');
 	/* get the common functions class*/
 	include_once ( 'wp-ffpc-backend.php');
 
