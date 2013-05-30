@@ -675,8 +675,7 @@ if ( ! class_exists( 'WP_FFPC' ) ) {
 		public function plugin_hook_options_migrate( &$options ) {
 			$migrated = false;
 
-			if ( $options['version'] != $this->plugin_version || !isset ( $options['version'] ) ) {
-
+			if ( version_compare ( $options['version'] , $this->plugin_version , '<' ) ) {
 				/* cleanup possible leftover files from previous versions */
 				$check = array ( 'advanced-cache.php', 'nginx-sample.conf', 'wp-ffpc.admin.css', 'wp-ffpc-common.php' );
 				foreach ( $check as $fname ) {
