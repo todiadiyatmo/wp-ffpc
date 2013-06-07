@@ -1,10 +1,10 @@
 === WP-FFPC ===
 Contributors: cadeyrn
 Donate link: https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=XU3DG7LLA76WC
-Tags: cache, page cache, full page cache, nginx, memcached, apc, speed, fast
+Tags: cache, page cache, full page cache, nginx, memcached, apc, speed
 Requires at least: 3.0
 Tested up to: 3.5.1
-Stable tag: 1.1.1
+Stable tag: 1.2
 License: GPLv3
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
 
@@ -54,6 +54,7 @@ You have to remove the default yum package, named `php-pecl-memcache` and instal
 From version 1.0, the plugin supports subdomain based WordPress Network with possible different per site cache settings. If the plugin is network active, obviously the network wide settings will be used for all of the sites. If it's activated only on some of the sites, the other will not be affected and even the cache storage backend can be different from site to site.
 
 = What are the plugin's requirements? =
+
 * WordPress >= 3.0
 
 and **at least one** of the following for storage backend:
@@ -74,7 +75,6 @@ In order to make contributions a lot easier, I've moved the plugin development t
 I provide support for the plugin as best as I can, but it comes without guarantee.
 Please post feature requests to [WP-FFPC feature request topic](http://wordpress.org/support/topic/feature-requests-14 "WP-FFPC feature request topic") and any questions on the forum.
 
-
 == Screenshots ==
 
 1. settings screen, cache type and basic settings
@@ -84,6 +84,23 @@ Please post feature requests to [WP-FFPC feature request topic](http://wordpress
 5. NGiNX example
 
 == Changelog ==
+
+= 1.2 =
+*TBA*
+
+What's new:
+
+* additional cookie patterns to exclude visitors from cache
+* syslog dropped; using standard PHP log instead, combined with WP_DEBUG to change to info/notice level
+* possibility to start pre-cache from wp-cron
+
+What's fixed:
+
+* WordPress has changed in cookie naming, plugin & nginx example has been updated
+
+**Dropped functions**
+
+* there's no info log on/off anymore, it's triggered when WP_DEBUG is active
 
 = 1.1.1 =
 *2013.04.25*

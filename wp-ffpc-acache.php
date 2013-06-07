@@ -52,25 +52,12 @@ elseif ( !empty ( $wp_ffpc_config[ $_SERVER['HTTP_HOST'] ] ) )
 else
 	return false;
 
-/* no cache for for logged in users normally, only if enabled */
-if ( $wp_ffpc_config['cache_loggedin'] == 0  ||  $wp_ffpc_config['nocache_cookies'] ) {
+if ( isset($wp_ffpc_config['nocache_cookies']) && !empty($wp_ffpc_config['nocache_cookies']) ) {
+	$nocache_cookies = array_map('trim',explode(",", $wp_ffpc_config['nocache_cookies'] ) );
 
-	$nocache_cookies = array();
-	if( $wp_ffpc_config['nocache_cookies'] ){
-		$nocache_cookies = array_map('trim',explode(",", $wp_ffpc_config['nocache_cookies'] ) );
-	}
-
-	foreach ($_COOKIE as $n=>$v) {
-		// test cookie makes to cache not work!!!
-		if ($n == 'wordpress_test_cookie') continue;
-		// wp 2.5 and wp 2.3 have different cookie prefix, skip cache if a post password cookie is present, also
-		if ( $wp_ffpc_config['cache_loggedin'] == 0 ) {
-			if ( (substr($n, 0, 14) == 'wordpressuser_' || substr($n, 0, 10) == 'wordpress_' || substr($n, 0, 12) == 'wp-postpass_') && !$wp_ffpc_config['cache_loggedin'] ) {
-				return false;
-			}
-		}
-		/* check for any matches to user-added cookies to no-cache */
-		if ( ! empty( $nocache_cookies ) ){
+	if ( !empty( $nocache_cookies ) ) {
+		foreach ($_COOKIE as $n=>$v) {
+			/* check for any matches to user-added cookies to no-cache */
 			foreach ( $nocache_cookies as $nocache_cookie ) {
 				if( strpos( $n, $nocache_cookie ) === 0 ) {
 					return false;
@@ -80,12 +67,26 @@ if ( $wp_ffpc_config['cache_loggedin'] == 0  ||  $wp_ffpc_config['nocache_cookie
 	}
 }
 
-
 /* canonical redirect storage */
 $wp_ffpc_redirect = null;
 
 /* fires up the backend storage array with current config */
 $wp_ffpc_backend = new WP_FFPC_Backend( $wp_ffpc_config );
+
+/* no cache for for logged in users unless it's set
+   identifier cookies are listed in backend as var for easier usage
+*/
+if ( !isset($wp_ffpc_config['cache_loggedin']) || $wp_ffpc_config['cache_loggedin'] == 0 || empty($wp_ffpc_config['cache_loggedin']) ) {
+
+	foreach ($_COOKIE as $n=>$v) {
+		foreach ( $wp_ffpc_backend->cookies as $nocache_cookie ) {
+			if( strpos( $n, $nocache_cookie ) === 0 ) {
+				return false;
+			}
+		}
+	}
+
+}
 
 /* will store time of page generation */
 $wp_ffpc_gentime = 0;
@@ -244,7 +245,7 @@ function wp_ffpc_callback( $buffer ) {
 	/* check if caching is disabled for page type */
 	$nocache_key = 'nocache_'. $meta['type'];
 
-	/* don't cache if prevented by rule, also, log it */
+	/* don't cache if prevented by rule */
 	if ( $wp_ffpc_config[ $nocache_key ] == 1 ) {
 		return $buffer;
 	}

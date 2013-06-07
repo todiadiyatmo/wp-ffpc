@@ -10,6 +10,11 @@
  */
 
 if (!class_exists('WP_FFPC_Backend')) {
+
+	/* get the plugin abstract class*/
+	include_once ( 'wp-common/wp-plugin-utilities.php');
+
+
 	/* __ only availabe if we're running from the inside of wordpress, not in advanced-cache.php phase */
 	if ( function_exists ( '__' ) ) {
 		function __translate__ ( $text, $domain ) { return __($text, $domain); }
@@ -17,7 +22,6 @@ if (!class_exists('WP_FFPC_Backend')) {
 	else {
 		function __translate__ ( $text, $domain ) { return $text; }
 	}
-
 
 	/**
 	 *
@@ -29,16 +33,18 @@ if (!class_exists('WP_FFPC_Backend')) {
 	 */
 	class WP_FFPC_Backend {
 
-		const plugin_constant = 'wp-ffpc';
 		const network_key = 'network';
 		const host_separator  = ',';
 		const port_separator  = ':';
 
+		private $plugin_constant = 'wp-ffpc';
 		private $connection = NULL;
 		private $alive = false;
 		private $network = false;
 		private $options = array();
 		private $status = array();
+		public $cookies = array();
+		private $utilities;
 
 		/**
 		* constructor
@@ -51,6 +57,10 @@ if (!class_exists('WP_FFPC_Backend')) {
 			$this->options = $config;
 			$this->network = $network;
 
+			$this->cookies = array ( 'comment_author_' , 'wordpressuser_' , 'wp-postpass_', 'wordpress_logged_in_' );
+
+			$this->utilities = WP_Plugins_Utilities::Utility();
+
 			/* no config, nothing is going to work */
 			if ( empty ( $this->options ) ) {
 				return false;
@@ -62,7 +72,7 @@ if (!class_exists('WP_FFPC_Backend')) {
 			/* call backend initiator based on cache type */
 			$init = $this->proxy( 'init' );
 
-			$this->log ( __translate__('init starting', self::plugin_constant ));
+			$this->log (  __translate__('init starting', $this->plugin_constant ));
 			$this->$init();
 		}
 
@@ -100,14 +110,14 @@ if (!class_exists('WP_FFPC_Backend')) {
 				return false;
 
 			/* log the current action */
-			$this->log ( __translate__('get ', self::plugin_constant ). $key );
+			$this->log (  __translate__('get ', $this->plugin_constant ). $key );
 
 			/* proxy to internal function */
 			$internal = $this->proxy( 'get' );
 			$result = $this->$internal( $key );
 
 			if ( $result === false  )
-				$this->log ( __translate__( "failed to get entry: ", self::plugin_constant ) . $key );
+				$this->log (  __translate__( "failed to get entry: ", $this->plugin_constant ) . $key );
 
 			return $result;
 		}
@@ -127,7 +137,7 @@ if (!class_exists('WP_FFPC_Backend')) {
 				return false;
 
 			/* log the current action */
-			$this->log( __translate__('set ', self::plugin_constant ) . $key . __translate__(' expiration time: ', self::plugin_constant ) . $this->options['expire']);
+			$this->log( __translate__('set ', $this->plugin_constant ) . $key . __translate__(' expiration time: ', $this->plugin_constant ) . $this->options['expire']);
 
 			/* proxy to internal function */
 			$internal = $this->options['cache_type'] . '_set';
@@ -135,7 +145,7 @@ if (!class_exists('WP_FFPC_Backend')) {
 
 			/* check result validity */
 			if ( $result === false )
-				$this->log ( __translate__('failed to set entry: ', self::plugin_constant ) . $key, LOG_WARNING );
+				$this->log (  __translate__('failed to set entry: ', $this->plugin_constant ) . $key, LOG_WARNING );
 
 			return $result;
 		}
@@ -153,21 +163,21 @@ if (!class_exists('WP_FFPC_Backend')) {
 
 			/* exit if no post_id is specified */
 			if ( empty ( $post_id ) && $force === false ) {
-				$this->log ( __translate__('not clearing unidentified post ', self::plugin_constant ), LOG_WARNING );
+				$this->log (  __translate__('not clearing unidentified post ', $this->plugin_constant ), LOG_WARNING );
 				return false;
 			}
 
 			/* if invalidation method is set to full, flush cache */
 			if ( $this->options['invalidation_method'] === 0 || $force === true ) {
 				/* log action */
-				$this->log ( __translate__('flushing cache', self::plugin_constant ) );
+				$this->log (  __translate__('flushing cache', $this->plugin_constant ) );
 
 				/* proxy to internal function */
 				$internal = $this->proxy ( 'flush' );
 				$result = $this->$internal();
 
 				if ( $result === false )
-					$this->log ( __translate__('failed to flush cache', self::plugin_constant ), LOG_WARNING );
+					$this->log (  __translate__('failed to flush cache', $this->plugin_constant ), LOG_WARNING );
 
 				return $result;
 			}
@@ -193,7 +203,7 @@ if (!class_exists('WP_FFPC_Backend')) {
 
 				/* no path, don't do anything */
 				if ( empty( $path ) ) {
-					$this->log ( __translate__('unable to determine path from Post Permalink, post ID: ', self::plugin_constant ) . $post_id , LOG_WARNING );
+					$this->log (  __translate__('unable to determine path from Post Permalink, post ID: ', $this->plugin_constant ) . $post_id , LOG_WARNING );
 					return false;
 				}
 
@@ -325,7 +335,7 @@ if (!class_exists('WP_FFPC_Backend')) {
 		 */
 		private function is_alive() {
 			if ( ! $this->alive ) {
-				$this->log ( __translate__("backend is not active, exiting function ", self::plugin_constant ) . __FUNCTION__, LOG_WARNING );
+				$this->log (  __translate__("backend is not active, exiting function ", $this->plugin_constant ) . __FUNCTION__, LOG_WARNING );
 				return false;
 			}
 
@@ -371,36 +381,14 @@ if (!class_exists('WP_FFPC_Backend')) {
 		}
 
 		/**
-		 * sends message to sysog
-		 *
-		 * @param mixed $message message to add besides basic info
+		 * log wrapper to include options
 		 *
 		 */
 		private function log ( $message, $log_level = LOG_WARNING ) {
-
-			if ( @is_array( $message ) || @is_object ( $message ) )
-				$message = serialize($message);
-
 			if ( !isset ( $this->options['log'] ) || $this->options['log'] != 1 )
 				return false;
-
-			switch ( $log_level ) {
-				case LOG_ERR :
-					if ( function_exists( 'syslog' ) && function_exists ( 'openlog' ) ) {
-						openlog('wordpress('.$_SERVER['HTTP_HOST'].')',LOG_NDELAY|LOG_PERROR,LOG_SYSLOG);
-						syslog( $log_level , self::plugin_constant . $message );
-					}
-					/* error level is real problem, needs to be displayed on the admin panel */
-					//throw new Exception ( $message );
-				break;
-				default:
-					if ( function_exists( 'syslog' ) && function_exists ( 'openlog' ) && isset( $this->options['log_info'] ) && $this->options['log_info'] == 1 ) {
-						openlog('wordpress(' .$_SERVER['HTTP_HOST']. ')', LOG_NDELAY,LOG_SYSLOG);
-						syslog( $log_level, self::plugin_constant . " " .  $message );
-					}
-				break;
-			}
-
+			else
+				$this->utilities->log ( $this->plugin_constant , $message, $log_level );
 		}
 
 		/*********************** END PUBLIC FUNCTIONS ***********************/
@@ -411,13 +399,13 @@ if (!class_exists('WP_FFPC_Backend')) {
 		private function apc_init () {
 			/* verify apc functions exist, apc extension is loaded */
 			if ( ! function_exists( 'apc_sma_info' ) ) {
-				$this->log ( __translate__('APC extension missing', self::plugin_constant ) );
+				$this->log (  __translate__('APC extension missing', $this->plugin_constant ) );
 				return false;
 			}
 
 			/* verify apc is working */
 			if ( apc_sma_info() ) {
-				$this->log ( __translate__('backend OK', self::plugin_constant ) );
+				$this->log (  __translate__('backend OK', $this->plugin_constant ) );
 				$this->alive = true;
 			}
 		}
@@ -480,11 +468,11 @@ if (!class_exists('WP_FFPC_Backend')) {
 
 			foreach ( $keys as $key => $dummy ) {
 				if ( ! apc_delete ( $key ) ) {
-					$this->log ( __translate__('Failed to delete APC entry: ', self::plugin_constant ) . $key, LOG_ERR );
-					//throw new Exception ( __translate__('Deleting APC entry failed with key ', self::plugin_constant ) . $key );
+					$this->log (  __translate__('Failed to delete APC entry: ', $this->plugin_constant ) . $key, LOG_ERR );
+					//throw new Exception ( __translate__('Deleting APC entry failed with key ', $this->plugin_constant ) . $key );
 				}
 				else {
-					$this->log ( __translate__( 'APC entry delete: ', self::plugin_constant ) . $key );
+					$this->log (  __translate__( 'APC entry delete: ', $this->plugin_constant ) . $key );
 				}
 			}
 		}
@@ -498,13 +486,13 @@ if (!class_exists('WP_FFPC_Backend')) {
 		private function memcached_init () {
 			/* Memcached class does not exist, Memcached extension is not available */
 			if (!class_exists('Memcached')) {
-				$this->log ( __translate__(' Memcached extension missing', self::plugin_constant ), LOG_ERR );
+				$this->log (  __translate__(' Memcached extension missing', $this->plugin_constant ), LOG_ERR );
 				return false;
 			}
 
 			/* check for existing server list, otherwise we cannot add backends */
 			if ( empty ( $this->options['servers'] ) && ! $this->alive ) {
-				$this->log ( __translate__("Memcached servers list is empty, init failed", self::plugin_constant ), LOG_WARNING );
+				$this->log (  __translate__("Memcached servers list is empty, init failed", $this->plugin_constant ), LOG_WARNING );
 				return false;
 			}
 
@@ -512,7 +500,7 @@ if (!class_exists('WP_FFPC_Backend')) {
 			if ( $this->connection === NULL ) {
 				/* persistent backend needs an identifier */
 				if ( $this->options['persistent'] == '1' )
-					$this->connection = new Memcached( self::plugin_constant );
+					$this->connection = new Memcached( $this->plugin_constant );
 				else
 					$this->connection = new Memcached();
 
@@ -523,7 +511,7 @@ if (!class_exists('WP_FFPC_Backend')) {
 
 			/* check if initialization was success or not */
 			if ( $this->connection === NULL ) {
-				$this->log ( __translate__( 'error initializing Memcached PHP extension, exiting', self::plugin_constant ) );
+				$this->log (  __translate__( 'error initializing Memcached PHP extension, exiting', $this->plugin_constant ) );
 				return false;
 			}
 
@@ -548,7 +536,7 @@ if (!class_exists('WP_FFPC_Backend')) {
 				/* only add servers that does not exists already  in connection pool */
 				if ( !@array_key_exists($server_id , $servers_alive ) ) {
 					$this->connection->addServer( $server['host'], $server['port'] );
-					$this->log ( $server_id . __translate__(" added, persistent mode: ", self::plugin_constant ) . $this->options['persistent'] );
+					$this->log (  $server_id . __translate__(" added, persistent mode: ", $this->plugin_constant ) . $this->options['persistent'] );
 				}
 			}
 
@@ -563,7 +551,7 @@ if (!class_exists('WP_FFPC_Backend')) {
 		 */
 		private function memcached_status () {
 			/* server status will be calculated by getting server stats */
-			$this->log ( __translate__("checking server statuses", self::plugin_constant ));
+			$this->log (  __translate__("checking server statuses", $this->plugin_constant ));
 			/* get servers statistic from connection */
 			$report =  $this->connection->getStats();
 
@@ -572,7 +560,7 @@ if (!class_exists('WP_FFPC_Backend')) {
 				$this->status[$server_id] = 0;
 				/* if server uptime is not empty, it's most probably up & running */
 				if ( !empty($details['uptime']) ) {
-					$this->log ( $server_id . __translate__(" server is up & running", self::plugin_constant ));
+					$this->log (  $server_id . __translate__(" server is up & running", $this->plugin_constant ));
 					$this->status[$server_id] = 1;
 				}
 			}
@@ -602,8 +590,8 @@ if (!class_exists('WP_FFPC_Backend')) {
 			/* if storing failed, log the error code */
 			if ( $result === false ) {
 				$code = $this->connection->getResultCode();
-				$this->log ( __translate__('unable to set entry ', self::plugin_constant ) . $key . __translate__( ', Memcached error code: ', self::plugin_constant ) . $code );
-				//throw new Exception ( __translate__('Unable to store Memcached entry ', self::plugin_constant ) . $key . __translate__( ', error code: ', self::plugin_constant ) . $code );
+				$this->log (  __translate__('unable to set entry ', $this->plugin_constant ) . $key . __translate__( ', Memcached error code: ', $this->plugin_constant ) . $code );
+				//throw new Exception ( __translate__('Unable to store Memcached entry ', $this->plugin_constant ) . $key . __translate__( ', error code: ', $this->plugin_constant ) . $code );
 			}
 
 			return $result;
@@ -634,10 +622,10 @@ if (!class_exists('WP_FFPC_Backend')) {
 
 				if ( $kresult === false ) {
 					$code = $this->connection->getResultCode();
-					$this->log ( __translate__('unable to delete entry ', self::plugin_constant ) . $key . __translate__( ', Memcached error code: ', self::plugin_constant ) . $code );
+					$this->log (  __translate__('unable to delete entry ', $this->plugin_constant ) . $key . __translate__( ', Memcached error code: ', $this->plugin_constant ) . $code );
 				}
 				else {
-					$this->log ( __translate__( 'entry deleted: ', self::plugin_constant ) . $key );
+					$this->log (  __translate__( 'entry deleted: ', $this->plugin_constant ) . $key );
 				}
 			}
 		}
@@ -650,13 +638,13 @@ if (!class_exists('WP_FFPC_Backend')) {
 		private function memcache_init () {
 			/* Memcached class does not exist, Memcache extension is not available */
 			if (!class_exists('Memcache')) {
-				$this->log ( __translate__('PHP Memcache extension missing', self::plugin_constant ), LOG_ERR );
+				$this->log (  __translate__('PHP Memcache extension missing', $this->plugin_constant ), LOG_ERR );
 				return false;
 			}
 
 			/* check for existing server list, otherwise we cannot add backends */
 			if ( empty ( $this->options['servers'] ) && ! $this->alive ) {
-				$this->log ( __translate__("servers list is empty, init failed", self::plugin_constant ), LOG_WARNING );
+				$this->log (  __translate__("servers list is empty, init failed", $this->plugin_constant ), LOG_WARNING );
 				return false;
 			}
 
@@ -666,7 +654,7 @@ if (!class_exists('WP_FFPC_Backend')) {
 
 			/* check if initialization was success or not */
 			if ( $this->connection === NULL ) {
-				$this->log ( __translate__( 'error initializing Memcache PHP extension, exiting', self::plugin_constant ) );
+				$this->log (  __translate__( 'error initializing Memcache PHP extension, exiting', $this->plugin_constant ) );
 				return false;
 			}
 
@@ -678,7 +666,7 @@ if (!class_exists('WP_FFPC_Backend')) {
 				else
 					$this->status[$server_id] = $this->connection->connect ( $server['host'] , $server['port'] );
 
-				$this->log ( $server_id . __translate__(" added, persistent mode: ", self::plugin_constant ) . $this->options['persistent'] );
+				$this->log ( $server_id . __translate__(" added, persistent mode: ", $this->plugin_constant ) . $this->options['persistent'] );
 			}
 
 			/* backend is now alive */
@@ -692,14 +680,14 @@ if (!class_exists('WP_FFPC_Backend')) {
 		 */
 		private function memcache_status () {
 			/* server status will be calculated by getting server stats */
-			$this->log ( __translate__("checking server statuses", self::plugin_constant ));
+			$this->log (  __translate__("checking server statuses", $this->plugin_constant ));
 			/* get servers statistic from connection */
 			foreach ( $this->options['servers'] as $server_id => $server ) {
 				$this->status[$server_id] = $this->connection->getServerStatus( $server['host'], $server['port'] );
 				if ( $this->status[$server_id] == 0 )
-					$this->log ( $server_id . __translate__(" server is down", self::plugin_constant ));
+					$this->log ( $server_id . __translate__(" server is down", $this->plugin_constant ));
 				else
-					$this->log ( $server_id . __translate__(" server is up & running", self::plugin_constant ));
+					$this->log ( $server_id . __translate__(" server is up & running", $this->plugin_constant ));
 			}
 		}
 
@@ -748,10 +736,10 @@ if (!class_exists('WP_FFPC_Backend')) {
 				$kresult = $this->connection->delete( $key );
 
 				if ( $kresult === false ) {
-					$this->log ( __translate__('unable to delete entry ', self::plugin_constant ) . $key );
+					$this->log (  __translate__('unable to delete entry ', $this->plugin_constant ) . $key );
 				}
 				else {
-					$this->log ( __translate__( 'entry deleted: ', self::plugin_constant ) . $key );
+					$this->log (  __translate__( 'entry deleted: ', $this->plugin_constant ) . $key );
 				}
 			}
 		}
