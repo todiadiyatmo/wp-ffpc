@@ -141,7 +141,7 @@ if ( array_key_exists( "HTTP_IF_MODIFIED_SINCE" , $_SERVER ) && !empty( $wp_ffpc
 /*** SERVING CACHED PAGE ***/
 
 /* if we reach this point it means data was found & correct, serve it */
-header('Content-Type: ' . $wp_ffpc_values['meta']['mime']);
+if ( isset( $wp_ffpc_values['meta']['mime'] )) header('Content-Type: ' . $wp_ffpc_values['meta']['mime']);
 
 /* don't allow browser caching of page */
 header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0, post-check=0, pre-check=0');

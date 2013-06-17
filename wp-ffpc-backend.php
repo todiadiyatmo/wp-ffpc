@@ -62,11 +62,17 @@ if (!class_exists('WP_FFPC_Backend')) {
 
 			$this->utilities = WP_Plugins_Utilities_v1::Utility();
 
+			$ruser = isset ( $_SERVER['REMOTE_USER'] ) ? $_SERVER['REMOTE_USER'] : '';
+			$ruri = isset ( $_SERVER['REQUEST_URI'] ) ? $_SERVER['REQUEST_URI'] : '';
+			$rhost = isset ( $_SERVER['HTTP_HOST'] ) ? $_SERVER['HTTP_HOST'] : '';
+			$scookie = isset ( $_COOKIE['PHPSESSID'] ) ? $_COOKIE['PHPSESSID'] : '';
+
 			$this->urimap = array(
 				'$scheme' => str_replace ( '://', '', $this->utilities->replace_if_ssl ( 'http://' ) ),
-				'$host' => $_SERVER['HTTP_HOST'],
-				'$request_uri' => $_SERVER['REQUEST_URI'],
-				'$remote_user' => $_SERVER['REMOTE_USER'],
+				'$host' => $rhost,
+				'$request_uri' => $ruri,
+				'$remote_user' => $ruser,
+				'$cookie_PHPSESSID' => $scookie,
 			);
 
 			/* no config, nothing is going to work */
@@ -82,6 +88,7 @@ if (!class_exists('WP_FFPC_Backend')) {
 
 			$this->log (  __translate__('init starting', $this->plugin_constant ));
 			$this->$init();
+
 		}
 
 		/*********************** PUBLIC FUNCTIONS ***********************/

@@ -134,6 +134,7 @@ if ( ! class_exists( 'WP_FFPC' ) ) {
 				'$host' => __('Host in the header of request or name of the server processing the request if the Host header is not available.', $this->plugin_constant ),
 				'$request_uri' => __('The *original* request URI as received from the client including the args', $this->plugin_constant ),
 				'$remote_user' => __('Name of user, authenticated by the Auth Basic Module', $this->plugin_constant ),
+				'$cookie_PHPSESSID' => __('PHP Session Cookie ID, if set ( empty if not )', $this->plugin_constant ),
 				//'$cookie_COOKnginy IE' => __('Value of COOKIE', $this->plugin_constant ),
 				//'$http_HEADER' => __('Value of HTTP request header HEADER ( lowercase, dashes converted to underscore )', $this->plugin_constant ),
 				//'$query_string' => __('Full request URI after rewrites', $this->plugin_constant ),
