@@ -67,6 +67,9 @@ if ( ! class_exists( 'WP_FFPC' ) ) {
 		private $shell_possibilities = array ();
 		private $backend = NULL;
 		private $scheduled = false;
+		private $errors = array();
+		private $warnings = array();
+		private $notices = array();
 
 		/**
 		 * init hook function runs before admin panel hook, themeing and options read
@@ -94,6 +97,15 @@ if ( ! class_exists( 'WP_FFPC' ) ) {
 			$this->shell_possibilities = array ( 'shell_exec', 'exec', 'system', 'passthru' );
 			//$this->shell_possibilities = array ( 'shell_exec' );
 			$disabled_functions = array_map('trim', explode(',', ini_get('disable_functions') ) );
+
+			$this->notices = array (
+			);
+
+			$this->warnings = array (
+			);
+
+			$this->errors = array (
+			);
 
 			foreach ( $this->shell_possibilities as $possible ) {
 				if ( function_exists ($possible) && ! ( ini_get('safe_mode') || in_array( $possible, $disabled_functions ) ) ) {
@@ -257,6 +269,30 @@ if ( ! class_exists( 'WP_FFPC' ) ) {
 					header( "Location: ". $this->settings_link . self::slug_precache );
 				}
 			}
+		}
+
+		/**
+		 *
+		 */
+		public function plugin_admin_help($contextual_help, $screen_id ) {
+
+			/* add our page only if the screenid is correct */
+			if ( strpos( $screen_id, $this->plugin_settings_page ) ) {
+				$contextual_help = __('<p>Please visit <a href="http://wordpress.org/support/plugin/wp-ffpc">the official support forum of the plugin</a> for help.</p>', $this->plugin_constant );
+
+				/* [TODO] give detailed information on errors & troubleshooting
+				get_current_screen()->add_help_tab( array(
+						'id'		=> $this->plugin_constant . '-issues',
+						'title'		=> __( 'Troubleshooting' ),
+						'content'	=> __( '<p>List of errors, possible reasons and solutions</p><dl>
+							<dt>E#</dt><dd></dd>
+						</ol>' )
+				) );
+				*/
+
+			}
+
+			return $contextual_help;
 		}
 
 		/**
@@ -442,7 +478,7 @@ if ( ! class_exists( 'WP_FFPC' ) ) {
 					</dt>
 					<dd>
 						<input type="text" name="prefix_data" id="prefix_data" value="<?php echo $this->options['prefix_data']; ?>" />
-						<span class="description"><?php _e('Prefix for HTML content keys, can be used in nginx.<br>If you are caching with nginx, you should update your nginx configuration and reload nginx after changing this value.', $this->plugin_constant); ?></span>
+						<span class="description"><?php _e('Prefix for HTML content keys, can be used in nginx.<br /><strong>WARNING</strong>: changing this will result the previous cache to becomes invalid!<br />If you are caching with nginx, you should update your nginx configuration and reload nginx after changing this value.', $this->plugin_constant); ?></span>
 					</dd>
 
 					<dt>
@@ -450,7 +486,7 @@ if ( ! class_exists( 'WP_FFPC' ) ) {
 					</dt>
 					<dd>
 						<input type="text" name="prefix_meta" id="prefix_meta" value="<?php echo $this->options['prefix_meta']; ?>" />
-						<span class="description"><?php _e('Prefix for meta content keys, used only with PHP processing.', $this->plugin_constant); ?></span>
+						<span class="description"><?php _e('Prefix for meta content keys, used only with PHP processing.<br /><strong>WARNING</strong>: changing this will result the previous cache to becomes invalid!', $this->plugin_constant); ?></span>
 					</dd>
 
 					<dt>
@@ -458,7 +494,7 @@ if ( ! class_exists( 'WP_FFPC' ) ) {
 					</dt>
 					<dd>
 						<input type="text" name="key" id="key" value="<?php echo $this->options['key']; ?>" />
-						<span class="description"><?php _e('Key layout; <strong>use the guide below to change it</strong>. Changing this requires changes in the nginx configuration and restarting nginx, if nginx memcached is in use.', $this->plugin_constant); ?><?php ?></span>
+						<span class="description"><?php _e('Key layout; <strong>use the guide below to change it</strong>.<br /><strong>WARNING</strong>: changing this will result the previous cache to becomes invalid!<br />If you are caching with nginx, you should update your nginx configuration and reload nginx after changing this value.', $this->plugin_constant); ?><?php ?></span>
 						<dl class="description"><?php
 						foreach ( $this->list_uri_vars as $uri => $desc ) {
 							echo '<dt>'. $uri .'</dt><dd>'. $desc .'</dd>';
@@ -564,7 +600,7 @@ if ( ! class_exists( 'WP_FFPC' ) ) {
 					</dt>
 					<dd>
 						<input type="text" name="nocache_cookies" id="nocache_cookies" value="<?php if(isset( $this->options['nocache_cookies'] ) ) echo $this->options['nocache_cookies']; ?>" />
-						<span class="description"><?php _e('Exclude cookies names starting with this from caching. Separate multiple cookies names with commas.<br>If you are caching with nginx, you should update your nginx configuration and reload nginx after changing this value.', $this->plugin_constant); ?></span>
+						<span class="description"><?php _e('Exclude cookies names starting with this from caching. Separate multiple cookies names with commas.<br />If you are caching with nginx, you should update your nginx configuration and reload nginx after changing this value.', $this->plugin_constant); ?></span>
 					</dd>
 				</dl>
 				</fieldset>
@@ -1079,6 +1115,29 @@ if ( ! class_exists( 'WP_FFPC' ) ) {
 			if ( $site !== false ) {
 				switch_to_blog( $current_blog );
 			}
+		}
+
+		/**
+		 * display predefined message based on code
+		 *
+		 */
+		private function message ( $code, $type, $echo = true ) {
+			switch ( $type ) {
+				case 'notice':
+					$a = $this->notices;
+					break;
+				case 'warning':
+					$a = $this->warnings;
+					break;
+				default:
+					$a = $this->errors;
+					break;
+			}
+
+			$r =  isset ( $a[ $code ] ) ? $a[ $code ] : '';
+
+			if ( $echo ) echo $r;
+			else return $r;
 		}
 
 	}
