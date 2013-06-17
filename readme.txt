@@ -93,6 +93,7 @@ What's new:
 * additional cookie patterns to exclude visitors from cache
 * syslog dropped; using standard PHP log instead, combined with WP_DEBUG to change to info/notice level
 * possibility to start pre-cache from wp-cron
+* changeable key scheme ( was fixed previously )
 
 What's fixed:
 

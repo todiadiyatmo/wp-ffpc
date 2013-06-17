@@ -10,7 +10,6 @@
  */
 
 if ( ! class_exists( 'WP_FFPC' ) ) {
-
 	/* get the plugin abstract class*/
 	include_once ( 'wp-common/wp-plugin-abstract.php' );
 	/* get the common functions class*/
@@ -29,7 +28,7 @@ if ( ! class_exists( 'WP_FFPC' ) ) {
 	 * @var array $select_invalidation_method Invalidation methods string array
 	 *
 	 */
-	class WP_FFPC extends WP_Plugins_Abstract {
+	class WP_FFPC extends WP_Plugins_Abstract_v2 {
 		const host_separator  = ',';
 		const port_separator  = ':';
 		const donation_id_key = 'hosted_button_id=';
@@ -63,7 +62,7 @@ if ( ! class_exists( 'WP_FFPC' ) ) {
 		protected $select_invalidation_method = array ();
 		protected $select_schedules = array();
 		protected $valid_cache_type = array ();
-
+		protected $list_uri_vars = array();
 		private $shell_function = false;
 		private $shell_possibilities = array ();
 		private $backend = NULL;
@@ -128,6 +127,17 @@ if ( ! class_exists( 'WP_FFPC' ) ) {
 				0 => __( 'flush cache' , $this->plugin_constant ),
 				1 => __( 'only modified post' , $this->plugin_constant ),
 				2 => __( 'modified post and all taxonomies' , $this->plugin_constant ),
+			);
+
+			$this->list_uri_vars = array (
+				'$scheme' => __('The HTTP scheme (i.e. http, https).', $this->plugin_constant ),
+				'$host' => __('Host in the header of request or name of the server processing the request if the Host header is not available.', $this->plugin_constant ),
+				'$request_uri' => __('The *original* request URI as received from the client including the args', $this->plugin_constant ),
+				'$remote_user' => __('Name of user, authenticated by the Auth Basic Module', $this->plugin_constant ),
+				//'$cookie_COOKnginy IE' => __('Value of COOKIE', $this->plugin_constant ),
+				//'$http_HEADER' => __('Value of HTTP request header HEADER ( lowercase, dashes converted to underscore )', $this->plugin_constant ),
+				//'$query_string' => __('Full request URI after rewrites', $this->plugin_constant ),
+				//'' => __('', $this->plugin_constant ),
 			);
 
 			$wp_schedules = wp_get_schedules();
@@ -217,14 +227,16 @@ if ( ! class_exists( 'WP_FFPC' ) ) {
 			/* save parameter updates, if there are any */
 			if ( isset( $_POST[ $this->button_flush ] ) ) {
 
-				update_option( self::precache_log , '' );
-				update_option( self::precache_timestamp , '' );
+				$this->_delete_option( self::precache_log  );
+				$this->_delete_option( self::precache_timestamp );
 
-				if ( @file_exists ( $this->precache_logfile ) )
-						unlink ( $this->precache_logfile );
+				if ( @file_exists ( $this->precache_logfile ) ) {
+					unlink ( $this->precache_logfile );
+				}
 
-				if ( @file_exists ( $this->precache_phpfile ) )
-						unlink ( $this->precache_phpfile );
+				if ( @file_exists ( $this->precache_phpfile ) ) {
+					unlink ( $this->precache_phpfile );
+				}
 
 				$this->backend->clear( false, true );
 				$this->status = 3;
@@ -439,6 +451,20 @@ if ( ! class_exists( 'WP_FFPC' ) ) {
 						<input type="text" name="prefix_meta" id="prefix_meta" value="<?php echo $this->options['prefix_meta']; ?>" />
 						<span class="description"><?php _e('Prefix for meta content keys, used only with PHP processing.', $this->plugin_constant); ?></span>
 					</dd>
+
+					<dt>
+						<label for="key"><?php _e('Key scheme', $this->plugin_constant); ?></label>
+					</dt>
+					<dd>
+						<input type="text" name="key" id="key" value="<?php echo $this->options['key']; ?>" />
+						<span class="description"><?php _e('Key layout; <strong>use the guide below to change it</strong>. Changing this requires changes in the nginx configuration and restarting nginx, if nginx memcached is in use.', $this->plugin_constant); ?><?php ?></span>
+						<dl class="description"><?php
+						foreach ( $this->list_uri_vars as $uri => $desc ) {
+							echo '<dt>'. $uri .'</dt><dd>'. $desc .'</dd>';
+						}
+						?></dl>
+					</dd>
+
 				</dl>
 				</fieldset>
 
@@ -450,7 +476,7 @@ if ( ! class_exists( 'WP_FFPC' ) ) {
 					</dt>
 					<dd>
 						<input type="checkbox" name="log" id="log" value="1" <?php checked($this->options['log'],true); ?> />
-						<span class="description"><?php _e('Enables ERROR and WARNING level syslog messages. Requires PHP syslog function.', $this->plugin_constant); ?></span>
+						<span class="description"><?php _e('Enables log messages; if <a href="http://codex.wordpress.org/WP_DEBUG">WP_DEBUG</a> is enabled, notices and info level is displayed as well, otherwie only ERRORS are logged.', $this->plugin_constant); ?></span>
 					</dd>
 
 					<dt>
@@ -602,7 +628,7 @@ if ( ! class_exists( 'WP_FFPC' ) ) {
 					}
 					else { ?>
 						<p><strong><?php _e( 'Time of run: ') ?><?php echo date('r', $gentime ); ?></strong></p>
-						<table style="width:100%; border: 1px solid #ccc;">
+						<div  style="overflow: auto; max-height: 20em;"><table style="width:100%; border: 1px solid #ccc;">
 							<thead><tr>
 									<?php $head = explode( "	", array_shift( $log ));
 									foreach ( $head as $column ) { ?>
@@ -618,7 +644,7 @@ if ( ! class_exists( 'WP_FFPC' ) ) {
 									<?php } ?>
 								</tr>
 							<?php } ?>
-					</table>
+					</table></div>
 				<?php } ?>
 				</fieldset>
 
@@ -798,7 +824,7 @@ if ( ! class_exists( 'WP_FFPC' ) ) {
 			/* add the required includes and generate the needed code */
 			$string[] = "<?php";
 			$string[] = self::global_config_var . ' = ' . var_export ( $this->global_config, true ) . ';' ;
-			$string[] = "include_once ('" . $this->acache_backend . "');";
+			//$string[] = "include_once ('" . $this->acache_backend . "');";
 			$string[] = "include_once ('" . $this->acache_worker . "');";
 			$string[] = "?>";
 
@@ -818,7 +844,7 @@ if ( ! class_exists( 'WP_FFPC' ) ) {
 
 			/* replace the data prefix with the configured one */
 			$to_replace = array ( 'DATAPREFIX' , 'SERVERROOT', 'SERVERLOG' );
-			$replace_with = array ( $this->options['prefix_data'], ABSPATH, $_SERVER['SERVER_NAME'] );
+			$replace_with = array ( $this->options['prefix_data'] . $this->options['key'] , ABSPATH, $_SERVER['SERVER_NAME'] );
 			$nginx = str_replace ( $to_replace , $replace_with , $nginx );
 
 			/* set upstream servers from configured servers, best to get from the actual backend */
@@ -909,12 +935,12 @@ if ( ! class_exists( 'WP_FFPC' ) ) {
 						$starttime = $starttime[1] + $starttime[0];
 
 							$page = file_get_contents( $permalink );
-							$size = round ( ( strlen ( $page ) / 1024 ), 3 );
+							$size = round ( ( strlen ( $page ) / 1024 ), 2 );
 
 						$endtime = explode ( " ", microtime() );
-						$endtime = ( $endtime[1] + $endtime[0] ) - $starttime;
+						$endtime = round( ( $endtime[1] + $endtime[0] ) - $starttime, 2 );
 
-						echo $permalink . "\t" . $endtime . "\t" . $size . "\n";
+						echo $permalink . "\t" .  $endtime . "\t" . $size . "\n";
 						unset ( $page, $size, $starttime, $endtime );
 						sleep( 1 );
 					}

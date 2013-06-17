@@ -69,8 +69,8 @@ if ( isset($wp_ffpc_config['nocache_cookies']) && !empty($wp_ffpc_config['nocach
 
 /* canonical redirect storage */
 $wp_ffpc_redirect = null;
-
 /* fires up the backend storage array with current config */
+include_once ('wp-ffpc-backend.php');
 $wp_ffpc_backend = new WP_FFPC_Backend( $wp_ffpc_config );
 
 /* no cache for for logged in users unless it's set
