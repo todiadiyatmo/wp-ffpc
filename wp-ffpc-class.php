@@ -884,8 +884,13 @@ if ( ! class_exists( 'WP_FFPC' ) ) {
 			/* set upstream servers from configured servers, best to get from the actual backend */
 			$servers = $this->backend->get_servers();
 			$nginx_servers = '';
-			foreach ( array_keys( $servers ) as $server ) {
-				$nginx_servers .= "		server ". $server .";\n";
+			if ( is_array ( $servers )) {
+				foreach ( array_keys( $servers ) as $server ) {
+					$nginx_servers .= "		server ". $server .";\n";
+				}
+			}
+			else {
+				$nginx_servers .= "		server ". $servers .";\n";
 			}
 			$nginx = str_replace ( 'MEMCACHED_SERVERS' , $nginx_servers , $nginx );
 

@@ -62,7 +62,7 @@ if (!class_exists('WP_FFPC_Backend')) {
 		public function __construct( $config, $network = false ) {
 
 			/* no config, nothing is going to work */
-			if ( empty ( $this->options ) ) {
+			if ( empty ( $config ) ) {
 				return false;
 				//die ( __translate__ ( 'WP-FFPC Backend class received empty configuration array, the plugin will not work this way', $this->plugin_constant ) );
 			}
@@ -406,7 +406,8 @@ if (!class_exists('WP_FFPC_Backend')) {
 		 *
 		 */
 		public function get_servers () {
-			return $this->options['servers'];
+			$r = isset ( $this->options['servers'] ) ? $this->options['servers'] : '';
+			return $r;
 		}
 
 		/**
