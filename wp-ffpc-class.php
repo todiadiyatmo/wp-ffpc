@@ -18,15 +18,17 @@ if ( ! class_exists( 'WP_FFPC' ) ) {
 	/**
 	 * main wp-ffpc class
 	 *
-	 * @var string $acache_config Configuration storage file location
-	 * @var string $acache_worker The advanced cache worker file location
-	 * @var string $acache The WordPress standard advanced cache location
-	 * @var array $select_cache_type Possible cache types array
-	 * @var array $select_invalidation_method Possible invalidation methods array
-	 * @var string $nginx_sample Nginx example config file location
-	 * @var array $select_cache_type Cache types string array
-	 * @var array $select_invalidation_method Invalidation methods string array
-	 *
+	 * @var string $acache_worker	advanced cache "worker" file, bundled with the plugin
+	 * @var string $acache	WordPress advanced-cache.php file location
+	 * @var string $nginx_sample	nginx sample config file, bundled with the plugin
+	 * @var string $acache_backend	backend driver file, bundled with the plugin
+	 * @var string $button_flush	flush button identifier
+	 * @var string $button_precache	precache button identifier
+	 * @var string $global_option	global options identifier
+	 * @var string $precache_logfile	Precache log file location
+	 * @var string $precache_phpfile	Precache PHP worker location
+	 * @var array $shell_possibilities	List of possible precache worker callers
+	 [TODO] finish list of vars
 	 */
 	class WP_FFPC extends WP_Plugins_Abstract_v2 {
 		const host_separator  = ',';
@@ -58,18 +60,15 @@ if ( ! class_exists( 'WP_FFPC' ) ) {
 		private $acache_backend = '';
 		private $button_flush;
 		private $button_precache;
-		protected $select_cache_type = array ();
-		protected $select_invalidation_method = array ();
-		protected $select_schedules = array();
-		protected $valid_cache_type = array ();
-		protected $list_uri_vars = array();
+		private $select_cache_type = array ();
+		private $select_invalidation_method = array ();
+		private $select_schedules = array();
+		private $valid_cache_type = array ();
+		private $list_uri_vars = array();
 		private $shell_function = false;
 		private $shell_possibilities = array ();
 		private $backend = NULL;
 		private $scheduled = false;
-		private $errors = array();
-		private $warnings = array();
-		private $notices = array();
 
 		/**
 		 * init hook function runs before admin panel hook, themeing and options read
@@ -95,17 +94,8 @@ if ( ! class_exists( 'WP_FFPC' ) ) {
 			$this->precache_phpfile = sys_get_temp_dir() . '/' . self::precache_php;
 			/* search for a system function */
 			$this->shell_possibilities = array ( 'shell_exec', 'exec', 'system', 'passthru' );
-			//$this->shell_possibilities = array ( 'shell_exec' );
+			/* get disabled functions list */
 			$disabled_functions = array_map('trim', explode(',', ini_get('disable_functions') ) );
-
-			$this->notices = array (
-			);
-
-			$this->warnings = array (
-			);
-
-			$this->errors = array (
-			);
 
 			foreach ( $this->shell_possibilities as $possible ) {
 				if ( function_exists ($possible) && ! ( ini_get('safe_mode') || in_array( $possible, $disabled_functions ) ) ) {
@@ -127,7 +117,7 @@ if ( ! class_exists( 'WP_FFPC' ) ) {
 				'memcache' => __( 'PHP Memcache' , $this->plugin_constant ),
 				'memcached' => __( 'PHP Memcached' , $this->plugin_constant ),
 			);
-
+			/* check for required functions / classes for the cache types */
 			$this->valid_cache_type = array (
 				'apc' => function_exists( 'apc_sma_info' ) ? true : false,
 				'memcache' => class_exists ( 'Memcache') ? true : false,
@@ -141,6 +131,7 @@ if ( ! class_exists( 'WP_FFPC' ) ) {
 				2 => __( 'modified post and all taxonomies' , $this->plugin_constant ),
 			);
 
+			/* map of possible key masks */
 			$this->list_uri_vars = array (
 				'$scheme' => __('The HTTP scheme (i.e. http, https).', $this->plugin_constant ),
 				'$host' => __('Host in the header of request or name of the server processing the request if the Host header is not available.', $this->plugin_constant ),
@@ -153,18 +144,19 @@ if ( ! class_exists( 'WP_FFPC' ) ) {
 				//'' => __('', $this->plugin_constant ),
 			);
 
+			/* get current wp_cron schedules */
 			$wp_schedules = wp_get_schedules();
+			/* add 'null' to switch off timed precache */
 			$schedules['null'] = __( 'do not use timed precache' );
 			foreach ( $wp_schedules as $interval=>$details ) {
 				$schedules[ $interval ] = $details['display'];
 			}
-
 			$this->select_schedules = $schedules;
 
 		}
 
 		/**
-		 * additional init, steps that needs the plugin  options
+		 * additional init, steps that needs the plugin options
 		 *
 		 */
 		public function plugin_setup () {
@@ -221,6 +213,7 @@ if ( ! class_exists( 'WP_FFPC' ) ) {
 
 		/**
 		 * uninstall hook function, to be extended
+		 * [TODO] static abstraction is not allowed in PHP; how to do this?
 		 */
 		static public function plugin_uninstall( $delete_options = true ) {
 			/* delete advanced-cache.php file */
@@ -240,17 +233,22 @@ if ( ! class_exists( 'WP_FFPC' ) ) {
 			/* save parameter updates, if there are any */
 			if ( isset( $_POST[ $this->button_flush ] ) ) {
 
+				/* remove precache log entry */
 				$this->_delete_option( self::precache_log  );
+				/* remove precache timestamp entry */
 				$this->_delete_option( self::precache_timestamp );
 
+				/* remove precache logfile */
 				if ( @file_exists ( $this->precache_logfile ) ) {
 					unlink ( $this->precache_logfile );
 				}
 
+				/* remove precache PHP worker */
 				if ( @file_exists ( $this->precache_phpfile ) ) {
 					unlink ( $this->precache_phpfile );
 				}
 
+				/* flush backend */
 				$this->backend->clear( false, true );
 				$this->status = 3;
 				header( "Location: ". $this->settings_link . self::slug_flush );
@@ -259,10 +257,12 @@ if ( ! class_exists( 'WP_FFPC' ) ) {
 			/* save parameter updates, if there are any */
 			if ( isset( $_POST[ $this->button_precache ] ) ) {
 
+				/* is no shell function is possible, fail */
 				if ( $this->shell_function == false ) {
 					$this->status = 5;
 					header( "Location: ". $this->settings_link . self::slug_precache_disabled );
 				}
+				/* otherwise start full precache */
 				else {
 					$this->precache_message = $this->precache_coldrun();
 					$this->status = 4;
@@ -272,7 +272,7 @@ if ( ! class_exists( 'WP_FFPC' ) ) {
 		}
 
 		/**
-		 *
+		 * admin help panel
 		 */
 		public function plugin_admin_help($contextual_help, $screen_id ) {
 
@@ -318,42 +318,43 @@ if ( ! class_exists( 'WP_FFPC' ) ) {
 
 			<?php
 
+			/* display donation form */
 			$this->plugin_donation_form();
 
 			/**
 			 * if options were saved, display saved message
 			 */
-			if ( ! empty( $this->broadcast_message ) ) : ?>
+			if ( ! empty( $this->broadcast_message ) ) { ?>
 				<div class="updated"><?php echo $this->broadcast_message; ?></div>
-			<?php endif;
+			<?php }
 
 			/**
 			 * if options were saved, display saved message
 			 */
-			if (isset($_GET[ self::key_save ]) && $_GET[ self::key_save ]=='true' || $this->status == 1) : ?>
+			if (isset($_GET[ self::key_save ]) && $_GET[ self::key_save ]=='true' || $this->status == 1) { ?>
 				<div class='updated settings-error'><p><strong><?php _e( 'Settings saved.' , $this->plugin_constant ) ?></strong></p></div>
-			<?php endif;
+			<?php }
 
 			/**
 			 * if options were delete, display delete message
 			 */
-			if (isset($_GET[ self::key_delete ]) && $_GET[ self::key_delete ]=='true' || $this->status == 2) : ?>
+			if (isset($_GET[ self::key_delete ]) && $_GET[ self::key_delete ]=='true' || $this->status == 2) { ?>
 				<div class='error'><p><strong><?php _e( 'Plugin options deleted.' , $this->plugin_constant ) ?></strong></p></div>
-			<?php endif;
+			<?php }
 
 			/**
 			 * if options were saved
 			 */
-			if (isset($_GET[ self::key_flush ]) && $_GET[ self::key_flush ]=='true' || $this->status == 3) : ?>
+			if (isset($_GET[ self::key_flush ]) && $_GET[ self::key_flush ]=='true' || $this->status == 3) { ?>
 				<div class='updated settings-error'><p><strong><?php _e( "Cache flushed." , $this->plugin_constant ); ?></strong></p></div>
-			<?php endif;
+			<?php }
 
 			/**
 			 * if options were saved, display saved message
 			 */
-			if ( ( isset($_GET[ self::key_precache ]) && $_GET[ self::key_precache ]=='true' ) || $this->status == 4) : ?>
+			if ( ( isset($_GET[ self::key_precache ]) && $_GET[ self::key_precache ]=='true' ) || $this->status == 4) { ?>
 			<div class='updated settings-error'><p><strong><?php _e( 'Precache process was started, it is now running in the background, please be patient, it may take a very long time to finish.' , $this->plugin_constant ) ?></strong></p></div>
-			<?php endif;
+			<?php }
 
 			/**
 			 * the admin panel itself
@@ -362,66 +363,61 @@ if ( ! class_exists( 'WP_FFPC' ) ) {
 
 			<h2><?php echo $this->plugin_name ; _e( ' settings', $this->plugin_constant ) ; ?></h2>
 
-			<?php if ( ! WP_CACHE ) : ?>
+			<?php if ( ! WP_CACHE ) { ?>
 				<div class="error"><p><?php _e("WP_CACHE is disabled, plugin will not work that way. Please add define `( 'WP_CACHE', true );` in wp-config.php", $this->plugin_constant ); ?></p></div>
-			<?php endif; ?>
+			<?php }
 
-			<?php if ( ! $this->global_saved ) : ?>
+			if ( ! $this->global_saved ) { ?>
 				<div class="error"><p><?php _e("WARNING: plugin settings are not yet saved for the site, please save settings!", $this->plugin_constant); ?></p><p><?php _e( "Technical information: the configuration array is not present in the global configuration." , $this->plugin_constant ) ?></p></div>
-			<?php endif; ?>
+			<?php }
 
-			<?php if ( ! file_exists ( $this->acache ) ) : ?>
+			if ( ! file_exists ( $this->acache ) ) { ?>
 				<div class="error"><p><?php _e("WARNING: advanced cache file is yet to be generated, please save settings!", $this->plugin_constant); ?></p><p><?php _e( "Technical information: please check if location is writable: " . $this->acache , $this->plugin_constant ) ?></p></div>
-			<?php endif; ?>
+			<?php }
 
-			<?php if ( $this->options['cache_type'] == 'memcached' && !class_exists('Memcached') ) : ?>
+			if ( $this->options['cache_type'] == 'memcached' && !class_exists('Memcached') ) { ?>
 				<div class="error"><p><?php _e('ERROR: Memcached cache backend activated but no PHP memcached extension was found.', $this->plugin_constant); ?></p></div>
-			<?php endif; ?>
+			<?php }
 
-			<?php if ( $this->options['cache_type'] == 'memcache' && !class_exists('Memcache') ) : ?>
+			if ( $this->options['cache_type'] == 'memcache' && !class_exists('Memcache') ) { ?>
 				<div class="error"><p><?php _e('ERROR: Memcache cache backend activated but no PHP memcache extension was found.', $this->plugin_constant); ?></p></div>
-			<?php endif; ?>
+			<?php }
 
-			<?php
-				/* get the current runtime configuration for memcache in PHP because Memcache in binary mode is really problematic */
-				if ( extension_loaded ( 'memcache' )  )
+			/* get the current runtime configuration for memcache in PHP because Memcache in binary mode is really problematic */
+			if ( extension_loaded ( 'memcache' )  )
+			{
+				$memcache_settings = ini_get_all( 'memcache' );
+				if ( !empty ( $memcache_settings ) && $this->options['cache_type'] == 'memcache' )
 				{
-					$memcache_settings = ini_get_all( 'memcache' );
-					if ( !empty ( $memcache_settings ) && $this->options['cache_type'] == 'memcache' )
-					{
-						$memcache_protocol = strtolower($memcache_settings['memcache.protocol']['local_value']);
-						if ( $memcached_protocol == 'binary' ) :
-						?>
+					$memcache_protocol = strtolower($memcache_settings['memcache.protocol']['local_value']);
+					if ( $memcached_protocol == 'binary' ) { ?>
 						<div class="error"><p><?php _e('WARNING: Memcache extension is configured to use binary mode. This is very buggy and the plugin will most probably not work correctly. <br />Please consider to change either to ASCII mode or to Memcached extension.', $this->plugin_constant ); ?></p></div>
-						<?php
-						endif;
-					}
+						<?php }
 				}
-			?>
+			} ?>
 			<div class="updated">
 				<p><strong><?php _e ( 'Driver: ' , $this->plugin_constant); echo $this->options['cache_type']; ?></strong></p>
 				<?php
-					/* only display backend status if memcache-like extension is running */
-					if ( strstr ( $this->options['cache_type'], 'memcache') ) :
-						?><p><?php
-						_e( '<strong>Backend status:</strong><br />', $this->plugin_constant );
+				/* only display backend status if memcache-like extension is running */
+				if ( strstr ( $this->options['cache_type'], 'memcache') ) {
+					?><p><?php
+					_e( '<strong>Backend status:</strong><br />', $this->plugin_constant );
 
-						/* we need to go through all servers */
-						$servers = $this->backend->status();
-						foreach ( $servers as $server_string => $status ) {
-							echo $server_string ." => ";
+					/* we need to go through all servers */
+					$servers = $this->backend->status();
+					foreach ( $servers as $server_string => $status ) {
+						echo $server_string ." => ";
 
-							if ( $status == 0 )
-								_e ( '<span class="error-msg">down</span><br />', $this->plugin_constant );
-							elseif ( ( $this->options['cache_type'] == 'memcache' && $status > 0 )  || $status == 1 )
-								_e ( '<span class="ok-msg">up & running</span><br />', $this->plugin_constant );
-							else
-								_e ( '<span class="error-msg">unknown, please try re-saving settings!</span><br />', $this->plugin_constant );
-						}
+						if ( $status == 0 )
+							_e ( '<span class="error-msg">down</span><br />', $this->plugin_constant );
+						elseif ( ( $this->options['cache_type'] == 'memcache' && $status > 0 )  || $status == 1 )
+							_e ( '<span class="ok-msg">up & running</span><br />', $this->plugin_constant );
+						else
+							_e ( '<span class="error-msg">unknown, please try re-saving settings!</span><br />', $this->plugin_constant );
+					}
 
-						?></p><?php
-					endif;
-				?>
+					?></p><?php
+				} ?>
 			</div>
 			<form method="post" action="#" id="<?php echo $this->plugin_constant ?>-settings" class="plugin-admin">
 
@@ -703,11 +699,12 @@ if ( ! class_exists( 'WP_FFPC' ) ) {
 				<legend><?php _e( 'Precache', $this->plugin_constant ); ?></legend>
 				<dl>
 					<dt>
-						<?php if ( ( isset( $_GET[ self::key_precache_disabled ] ) && $_GET[ self::key_precache_disabled ] =='true' ) || $this->status == 5 || $this->shell_function == false ) : ?>
+						<?php if ( ( isset( $_GET[ self::key_precache_disabled ] ) && $_GET[ self::key_precache_disabled ] =='true' ) || $this->status == 5 || $this->shell_function == false ) { ?>
 							<strong><?php _e( "Precache functionality is disabled due to unavailable system call function. <br />Since precaching may take a very long time, it's done through a background CLI process in order not to run out of max execution time of PHP. Please enable one of the following functions if you whish to use precaching: " , $this->plugin_constant ) ?><?php echo join( ',' , $this->shell_possibilities ); ?></strong>
-						<?php else: ?>
+						<?php }
+						else { ?>
 							<input class="button-secondary" type="submit" name="<?php echo $this->button_precache ?>" id="<?php echo $this->button_precache ?>" value="<?php _e('Pre-cache', $this->plugin_constant ) ?>" />
-						<?php endif; ?>
+						<?php } ?>
 					</dt>
 					<dd>
 						<span class="description"><?php _e('Start a background process that visits all permalinks of all blogs it can found thus forces WordPress to generate cached version of all the pages.<br />The plugin tries to visit links of taxonomy terms without the taxonomy name as well. This may generate 404 hits, please be prepared for these in your logfiles if you plan to pre-cache.', $this->plugin_constant); ?></span>
@@ -1003,15 +1000,16 @@ if ( ! class_exists( 'WP_FFPC' ) ) {
 			if ( file_exists ( $this->precache_phpfile )) {
 				$return = true;
 			}
-			// TODO: cross-platform process check; this is *nix only
-			//else {
-			//	/* otherwise try to check if precache is running; */
-			//	$shellfunction = $this->shell_function;
-			//	$running = $shellfunction( "ps aux | grep \"". $this->precache_phpfile ."\" | grep -v grep | awk '{print $2}'" );
-			//	if ( is_int( $running ) && $running != 0 ) {
-			//		$return = true;
-			//	}
-			//}
+			/*
+			 [TODO] cross-platform process check; this is *nix only
+			else {
+				$shellfunction = $this->shell_function;
+				$running = $shellfunction( "ps aux | grep \"". $this->precache_phpfile ."\" | grep -v grep | awk '{print $2}'" );
+				if ( is_int( $running ) && $running != 0 ) {
+					$return = true;
+				}
+			}
+			*/
 
 			return $return;
 		}
@@ -1105,7 +1103,6 @@ if ( ! class_exists( 'WP_FFPC' ) ) {
 
 			}
 
-			//$this->taxonomy_links ( $links );
 			$this->backend->taxonomy_links ( $links );
 
 			/* just in case, reset $post */
@@ -1118,9 +1115,10 @@ if ( ! class_exists( 'WP_FFPC' ) ) {
 		}
 
 		/**
+		 * [TODO] this function will be used with error coded log messages
 		 * display predefined message based on code
 		 *
-		 */
+		 *
 		private function message ( $code, $type, $echo = true ) {
 			switch ( $type ) {
 				case 'notice':
@@ -1138,7 +1136,7 @@ if ( ! class_exists( 'WP_FFPC' ) ) {
 
 			if ( $echo ) echo $r;
 			else return $r;
-		}
+		}*/
 
 	}
 }

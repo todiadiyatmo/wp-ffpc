@@ -25,10 +25,15 @@ if (!class_exists('WP_FFPC_Backend')) {
 
 	/**
 	 *
+	 * @var string	$plugin_constant	Namespace of the plugin
 	 * @var mixed	$connection	Backend object storage variable
-	 * @var array	$config		Configuration settings array
-	 * @var boolean	$alive		Backend aliveness indicator
-	 * @var mixed	$status		Backend server status storage
+	 * @var boolean	$alive		Alive flag of backend connection
+	 * @var boolean $network	WordPress Network flag
+	 * @var array	$options	Configuration settings array
+	 * @var array	$status		Backends status storage
+	 * @var array	$cookies	Logged in cookies to search for
+	 * @var array	$urimap		Map to render key with
+	 * @var object	$utilities	Utilities singleton
 	 *
 	 */
 	class WP_FFPC_Backend {
@@ -51,17 +56,30 @@ if (!class_exists('WP_FFPC_Backend')) {
 		* constructor
 		*
 		* @param mixed $config Configuration options
+		* @param boolean $network WordPress Network indicator flah
 		*
 		*/
 		public function __construct( $config, $network = false ) {
 
+			/* no config, nothing is going to work */
+			if ( empty ( $this->options ) ) {
+				return false;
+				//die ( __translate__ ( 'WP-FFPC Backend class received empty configuration array, the plugin will not work this way', $this->plugin_constant ) );
+			}
+
+			/* set config */
 			$this->options = $config;
+
+			/* set network flag */
 			$this->network = $network;
 
+			/* these are the list of the cookies to look for when looking for logged in user */
 			$this->cookies = array ( 'comment_author_' , 'wordpressuser_' , 'wp-postpass_', 'wordpress_logged_in_' );
 
+			/* make utilities singleton */
 			$this->utilities = WP_Plugins_Utilities_v1::Utility();
 
+			/* map the key with the predefined schemes */
 			$ruser = isset ( $_SERVER['REMOTE_USER'] ) ? $_SERVER['REMOTE_USER'] : '';
 			$ruri = isset ( $_SERVER['REQUEST_URI'] ) ? $_SERVER['REQUEST_URI'] : '';
 			$rhost = isset ( $_SERVER['HTTP_HOST'] ) ? $_SERVER['HTTP_HOST'] : '';
@@ -75,23 +93,19 @@ if (!class_exists('WP_FFPC_Backend')) {
 				'$cookie_PHPSESSID' => $scookie,
 			);
 
-			/* no config, nothing is going to work */
-			if ( empty ( $this->options ) ) {
-				return false;
-			}
-
 			/* split hosts entry to servers */
 			$this->set_servers();
 
 			/* call backend initiator based on cache type */
 			$init = $this->proxy( 'init' );
 
+			/* info level */
 			$this->log (  __translate__('init starting', $this->plugin_constant ));
 			$this->$init();
 
 		}
 
-		/*********************** PUBLIC FUNCTIONS ***********************/
+		/*********************** PUBLIC / PROXY FUNCTIONS ***********************/
 
 		/**
 		 * build key to make requests with
@@ -166,7 +180,9 @@ if (!class_exists('WP_FFPC_Backend')) {
 		/**
 		 * public get function, transparent proxy to internal function based on backend
 		 *
-		 * @param string $key Cache key to invalidate, false mean full flush
+		 * @param string $post_id	ID of post to invalidate
+		 * @param boolean $force 	Force flush cache
+		 *
 		 */
 		public function clear ( $post_id = false, $force = false ) {
 
@@ -396,6 +412,8 @@ if (!class_exists('WP_FFPC_Backend')) {
 		/**
 		 * log wrapper to include options
 		 *
+		 * @var mixed $message Message to log
+		 * @var int $log_level Log level
 		 */
 		private function log ( $message, $log_level = LOG_WARNING ) {
 			if ( !isset ( $this->options['log'] ) || $this->options['log'] != 1 )
