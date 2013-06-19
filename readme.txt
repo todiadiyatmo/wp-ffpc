@@ -11,11 +11,10 @@ License URI: http://www.gnu.org/licenses/gpl-3.0.html
 Fastest way of cache for WordPress: memcached + nginx!
 
 == Description ==
-WP-FFPC ( WordPress Fast Full Page Cache ) is a cache plugin for [WordPress](http://wordpress.org/ "WordPress").
-Supports PHP Memcached, PHP Memcache and APC as storage engines, subdomain and domain based WordPress Networks and can be connected with [NGiNX](http://NGiNX.org "NGiNX") webserver.
+WP-FFPC ( WordPress Fast Full Page Cache ) is a cache plugin for [WordPress](http://wordpress.org/ "WordPress"). It works with any webserver, including apache2, lighttpd, nginx, however, can be connected with [NGiNX](http://NGiNX.org "NGiNX") through memcached for unbeatable speed.
+Supports PHP Memcached, PHP Memcache and APC as storage engines, subdomain and domain based WordPress Networks.
 
 = Features: =
-* [NGiNX](http://NGiNX.org "NGiNX") compatibility
 * Wordpress Network support ( for subdomain layout )
 * cache exclude possibilities ( home, feeds, archieves, pages, singles )
 * (optional) cache for logged-in users
@@ -24,13 +23,17 @@ Supports PHP Memcached, PHP Memcache and APC as storage engines, subdomain and d
 * Last Modified HTTP header support ( for 304 responses )
 * shortlink HTTP header preservation
 * pingback HTTP header preservation
-* (optional) talkative log for troubleshooting
+* talkative log for [WP_DEBUG](http://codex.wordpress.org/WP_DEBUG "WP_DEBUG")
 * multiple memcached upstream support
-*  precache ( manually only )
+* precache ( manually or by timed by wp-cron )
+* [NGiNX](http://NGiNX.org "NGiNX") compatibility
 
-Many thanks for supporters, testers & bug reporters: [Harold Kyle](https://github.com/haroldkyle "Harold Kyle"); [Eric Gilette](http://www.ericgillette.com/ "Eric Gilette"); [doconeill](http://wordpress.org/support/profile/doconeill "doconeill"); [Mark Costlow](mailto:cheeks@swcp.com "Mark Costlow").
+Many thanks for contributors, supporters, testers & bug reporters:
 
-Thanks for [Hyper Cache](http://wordpress.org/extend/plugins/hyper-cache "Hyper Cache") for beeing inspirational.
+* [Harold Kyle](https://github.com/haroldkyle "Harold Kyle")
+* [Eric Gilette](http://www.ericgillette.com/ "Eric Gilette")
+* [doconeill](http://wordpress.org/support/profile/doconeill "doconeill")
+* [Mark Costlow](mailto:cheeks@swcp.com "Mark Costlow").
 
 == Installation ==
 
@@ -86,22 +89,27 @@ Please post feature requests to [WP-FFPC feature request topic](http://wordpress
 == Changelog ==
 
 = 1.2 =
-*TBA*
+2013-06-19
 
 What's new:
 
-* additional cookie patterns to exclude visitors from cache
-* syslog dropped; using standard PHP log instead, combined with WP_DEBUG to change to info/notice level
-* possibility to start pre-cache from wp-cron
-* changeable key scheme ( was fixed previously )
+* additional cookie patterns to exclude visitors from cache, contribution from [Harold Kyle](https://github.com/haroldkyle "Harold Kyle")
+* syslog dropped; using "regular" PHP log instead
+* pre-cache from wp-cron
+* changeable key scheme ( was fixed previously ); possibility to add user-specific cache if PHPESSID cookie is present
 
 What's fixed:
 
-* WordPress has changed in cookie naming, plugin & nginx example has been updated
+* logged in cookie check fixed ( was not checking all WordPress cookies )
+* global error messages to show if settings are not saved
 
 **Dropped functions**
 
 * there's no info log on/off anymore, it's triggered when WP_DEBUG is active
+
+**For Devs**
+
+* the abstract class have been moved into a separate Github repository, [wp-common](https://github.com/petermolnar/wp-common "wp-common"). Because PHP is not capable of replacing/redefining classes, there's a versioning with the abstract and the utilities class, please be aware of this.
 
 = 1.1.1 =
 *2013.04.25*

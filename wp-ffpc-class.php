@@ -69,6 +69,7 @@ if ( ! class_exists( 'WP_FFPC' ) ) {
 		private $shell_possibilities = array ();
 		private $backend = NULL;
 		private $scheduled = false;
+		private $errors = array();
 
 		/**
 		 * init hook function runs before admin panel hook, themeing and options read
@@ -194,6 +195,43 @@ if ( ! class_exists( 'WP_FFPC' ) ) {
 			/* add precache coldrun action */
 			add_action( self::precache_id , array( &$this, 'precache_coldrun' ) );
 
+			$settings_link = ' &raquo; <a href="' . $this->settings_link . '">' . __( 'WP-FFPC Settings', $this->plugin_constant ) . '</a>';
+			/* check for errors */
+			if ( ! WP_CACHE )
+				$this->errors['no_wp_cache'] = __("WP_CACHE is disabled, plugin will not work that way. Please add define `( 'WP_CACHE', true );` in wp-config.php", $this->plugin_constant ) . $settings_link;
+
+			if ( ! $this->global_saved )
+				$this->errors['no_global_saved'] = __("Plugin settings are not yet saved for the site, please save settings!", $this->plugin_constant) . $settings_link;
+
+			if ( ! file_exists ( $this->acache ) )
+				$this->errors['no_acache_saved'] = __("Advanced cache file is yet to be generated, please save settings!", $this->plugin_constant). $settings_link;
+
+			if ( file_exists ( $this->acache ) && ! is_writable ( $this->acache ) )
+				$this->errors['no_acache_write'] = __("Advanced cache file is not writeable!<br />Please change the permissions on the file: ", $this->plugin_constant) . $this->acache;
+
+			if ( $this->options['cache_type'] == 'memcached' && !class_exists('Memcached') )
+				$this->errors['no_memcached'] = __('Memcached cache backend activated but no PHP memcached extension was found.<br />Please either use different backend or activate the module!', $this->plugin_constant);
+
+			if ( $this->options['cache_type'] == 'memcache' && !class_exists('Memcache') )
+				$this->errors['no_memcached'] = __('Memcache cache backend activated but no PHP memcache extension was found.<br />Please either use different backend or activate the module!', $this->plugin_constant);
+
+			/* get the current runtime configuration for memcache in PHP because Memcache in binary mode is really problematic */
+			if ( extension_loaded ( 'memcache' )  ) {
+				$memcache_settings = ini_get_all( 'memcache' );
+				if ( !empty ( $memcache_settings ) && $this->options['cache_type'] == 'memcache' )
+				{
+					$memcache_protocol = strtolower($memcache_settings['memcache.protocol']['local_value']);
+					if ( $memcached_protocol == 'binary' ) {
+						$this->errors['binary_memcache'] = __('WARNING: Memcache extension is configured to use binary mode. This is very buggy and the plugin will most probably not work correctly. <br />Please consider to change either to ASCII mode or to Memcached extension.', $this->plugin_constant );
+					}
+				}
+			}
+
+			/* display errors globally */
+			if ( $this->network )
+				add_action( 'network_admin_notices', array( &$this, 'display_errors') );
+			else
+				add_action( 'admin_notices', array( &$this, 'display_errors') );
 		}
 
 		/**
@@ -363,38 +401,6 @@ if ( ! class_exists( 'WP_FFPC' ) ) {
 
 			<h2><?php echo $this->plugin_name ; _e( ' settings', $this->plugin_constant ) ; ?></h2>
 
-			<?php if ( ! WP_CACHE ) { ?>
-				<div class="error"><p><?php _e("WP_CACHE is disabled, plugin will not work that way. Please add define `( 'WP_CACHE', true );` in wp-config.php", $this->plugin_constant ); ?></p></div>
-			<?php }
-
-			if ( ! $this->global_saved ) { ?>
-				<div class="error"><p><?php _e("WARNING: plugin settings are not yet saved for the site, please save settings!", $this->plugin_constant); ?></p><p><?php _e( "Technical information: the configuration array is not present in the global configuration." , $this->plugin_constant ) ?></p></div>
-			<?php }
-
-			if ( ! file_exists ( $this->acache ) ) { ?>
-				<div class="error"><p><?php _e("WARNING: advanced cache file is yet to be generated, please save settings!", $this->plugin_constant); ?></p><p><?php _e( "Technical information: please check if location is writable: " . $this->acache , $this->plugin_constant ) ?></p></div>
-			<?php }
-
-			if ( $this->options['cache_type'] == 'memcached' && !class_exists('Memcached') ) { ?>
-				<div class="error"><p><?php _e('ERROR: Memcached cache backend activated but no PHP memcached extension was found.', $this->plugin_constant); ?></p></div>
-			<?php }
-
-			if ( $this->options['cache_type'] == 'memcache' && !class_exists('Memcache') ) { ?>
-				<div class="error"><p><?php _e('ERROR: Memcache cache backend activated but no PHP memcache extension was found.', $this->plugin_constant); ?></p></div>
-			<?php }
-
-			/* get the current runtime configuration for memcache in PHP because Memcache in binary mode is really problematic */
-			if ( extension_loaded ( 'memcache' )  )
-			{
-				$memcache_settings = ini_get_all( 'memcache' );
-				if ( !empty ( $memcache_settings ) && $this->options['cache_type'] == 'memcache' )
-				{
-					$memcache_protocol = strtolower($memcache_settings['memcache.protocol']['local_value']);
-					if ( $memcached_protocol == 'binary' ) { ?>
-						<div class="error"><p><?php _e('WARNING: Memcache extension is configured to use binary mode. This is very buggy and the plugin will most probably not work correctly. <br />Please consider to change either to ASCII mode or to Memcached extension.', $this->plugin_constant ); ?></p></div>
-						<?php }
-				}
-			} ?>
 			<div class="updated">
 				<p><strong><?php _e ( 'Driver: ' , $this->plugin_constant); echo $this->options['cache_type']; ?></strong></p>
 				<?php
@@ -1142,6 +1148,25 @@ if ( ! class_exists( 'WP_FFPC' ) ) {
 			if ( $echo ) echo $r;
 			else return $r;
 		}*/
+
+		/**
+		 * print errors
+		 *
+		 */
+		public function display_errors ( ) {
+			if ( empty ( $this->errors )) {
+				$r = false;
+			}
+			else {
+				$r = '<div class="error"><strong>'. __('WP-FFPC found errors, please correct them!', $this->plugin_constant ) .'</strong><ol>';
+				foreach ( $this->errors as $eid => $message ) {
+					$r .= '<li>' . $message . '</li>';
+				}
+				$r.= '</ol></div>';
+			}
+
+			echo $r;
+		}
 
 	}
 }
