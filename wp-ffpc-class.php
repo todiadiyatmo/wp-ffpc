@@ -185,10 +185,9 @@ if ( ! class_exists( 'WP_FFPC' ) ) {
 			/* add filter for catching canonical redirects */
 			add_filter('redirect_canonical', 'wp_ffpc_redirect_callback', 10, 2);
 
-			if ( !wp_next_scheduled( self::precache_id ) && $this->options['precache_schedule'] != 'null' && $this->scheduled === false ) {
-				$this->scheduled = wp_schedule_event( time(), $this->options['precache_schedule'] , self::precache_id );
-			}
-			else {
+			/* clean up schedule if needed */
+			if ( !isset( $this->options['precache_schedule'] ) || $this->options['precache_schedule'] == 'null' ) {
+				$this->log ( 'CRON clearing event' );
 				wp_clear_scheduled_hook ( self::precache_id );
 			}
 
@@ -750,6 +749,19 @@ if ( ! class_exists( 'WP_FFPC' ) ) {
 		 */
 		public function plugin_hook_options_save( $activating ) {
 
+			/* schedule cron if posted */
+			$schedule = wp_get_schedule( self::precache_id );
+			if ( $this->options['precache_schedule'] != 'null' ) {
+				/* clear all other schedules before adding a new in order to replace */
+				wp_clear_scheduled_hook ( self::precache_id );
+				$this->log ( __( 'Scheduling WP-CRON event', $this->plugin_constant ) );
+				$this->scheduled = wp_schedule_event( time(), $this->options['precache_schedule'] , self::precache_id );
+			}
+			elseif ( ( !isset($this->options['precache_schedule']) || $this->options['precache_schedule'] == 'null' ) && !empty( $schedule ) ) {
+				$this->log ( __('Clearing WP-CRON clearing event ' , $this->plugin_constant ) );
+				wp_clear_scheduled_hook ( self::precache_id );
+			}
+
 			/* flush the cache when news options are saved, not needed on activation */
 			if ( !$activating )
 				$this->backend->clear();
@@ -1107,6 +1119,12 @@ if ( ! class_exists( 'WP_FFPC' ) ) {
 					default:
 						$permalink = get_post_permalink( $post->ID );
 					break;
+				}
+
+				$baseurl = get_blog_option ( $site, 'siteurl' );
+
+				if ( !strstr( $permalink, $baseurl ) ) {
+					$permalink = $baseurl . $permalink;
 				}
 
 				/* collect permalinks */
