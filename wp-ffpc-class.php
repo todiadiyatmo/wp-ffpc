@@ -1121,8 +1121,8 @@ if ( ! class_exists( 'WP_FFPC' ) ) {
 					break;
 				}
 
+				/* in case the bloglinks are relative links add the base url, site specific */
 				$baseurl = get_blog_option ( $site, 'siteurl' );
-
 				if ( !strstr( $permalink, $baseurl ) ) {
 					$permalink = $baseurl . $permalink;
 				}
@@ -1144,31 +1144,7 @@ if ( ! class_exists( 'WP_FFPC' ) ) {
 		}
 
 		/**
-		 * [TODO] this function will be used with error coded log messages
-		 * display predefined message based on code
-		 *
-		 *
-		private function message ( $code, $type, $echo = true ) {
-			switch ( $type ) {
-				case 'notice':
-					$a = $this->notices;
-					break;
-				case 'warning':
-					$a = $this->warnings;
-					break;
-				default:
-					$a = $this->errors;
-					break;
-			}
-
-			$r =  isset ( $a[ $code ] ) ? $a[ $code ] : '';
-
-			if ( $echo ) echo $r;
-			else return $r;
-		}*/
-
-		/**
-		 * print errors
+		 * print errors, called by global errors hook
 		 *
 		 */
 		public function display_errors ( ) {

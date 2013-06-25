@@ -243,12 +243,14 @@ function wp_ffpc_callback( $buffer ) {
 	else
 		$meta['type'] = 'unknown';
 
-	/* check if caching is disabled for page type */
-	$nocache_key = 'nocache_'. $meta['type'];
+	if ( $meta['type'] != 'unknown' ) {
+		/* check if caching is disabled for page type */
+		$nocache_key = 'nocache_'. $meta['type'];
 
-	/* don't cache if prevented by rule */
-	if ( $wp_ffpc_config[ $nocache_key ] == 1 ) {
-		return $buffer;
+		/* don't cache if prevented by rule */
+		if ( $wp_ffpc_config[ $nocache_key ] == 1 ) {
+			return $buffer;
+		}
 	}
 
 	if ( is_404() )
