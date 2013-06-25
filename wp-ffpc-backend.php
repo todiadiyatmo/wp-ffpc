@@ -115,7 +115,7 @@ if (!class_exists('WP_FFPC_Backend')) {
 		 */
 		public function key ( &$prefix ) {
 			/* data is string only with content, meta is not used in nginx */
-			$key = str_replace ( array_keys( $this->urimap ), $this->urimap, $this->options['key'] );
+			$key = $prefix . str_replace ( array_keys( $this->urimap ), $this->urimap, $this->options['key'] );
 			$this->log (  __translate__('original key configuration: ', $this->plugin_constant ) . $this->options['key'] );
 			$this->log (  __translate__('setting key to: ', $this->plugin_constant ) . $key );
 
