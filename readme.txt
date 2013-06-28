@@ -106,6 +106,7 @@ What's fixed:
 **Dropped functions**
 
 * there's no info log on/off anymore, it's triggered when WP_DEBUG is active
+* sync protocols has been removed for two reasons: this has to be done by other systems and causes issues in special cases
 
 **For Devs**
 

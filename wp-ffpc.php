@@ -43,7 +43,6 @@ $wp_ffpc_defaults = array (
 	'nocache_single' => false,
 	'nocache_page' => false,
 	'nocache_cookies' => false,
-	'sync_protocols' => false,
 	'persistent' => false,
 	'response_header' => false,
 	'generate_time' => false,

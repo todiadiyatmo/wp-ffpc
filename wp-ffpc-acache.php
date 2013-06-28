@@ -289,30 +289,13 @@ function wp_ffpc_callback( $buffer ) {
 	if ( get_option ( 'default_ping_status' ) == 'open' )
 		$meta['pingback'] = get_bloginfo('pingback_url');
 
-	/* sync all http and https requests if enabled */
-	if ( isset( $config['sync_protocols'] ) && $config['sync_protocols'] == '1' )	{
-		if ( isset( $_SERVER['HTTP_X_FORWARDED_PROTO'] ) && $_SERVER['HTTP_X_FORWARDED_PROTO'] == 'https' )
-			$_SERVER['HTTPS'] = 'on';
-
-		if ( isset($_SERVER['HTTPS']) && ( ( strtolower($_SERVER['HTTPS']) == 'on' )  || ( $_SERVER['HTTPS'] == '1' ) ) ) {
-			$sync_from = 'http://' . $_SERVER['SERVER_NAME'];
-			$sync_to = 'https://' . $_SERVER['SERVER_NAME'];
-		}
-		else {
-			$sync_from = 'https://' . $_SERVER['SERVER_NAME'];
-			$sync_to = 'http://' . $_SERVER['SERVER_NAME'];
-		}
-
-		$buffer = str_replace ( $sync_from, $sync_to, $buffer );
-	}
-
 	/* add generation info is option is set, but only to HTML */
 	if ( $wp_ffpc_config['generate_time'] == '1' && stripos($buffer, '</body>') ) {
 		global $wp_ffpc_gentime;
 		$mtime = explode ( " ", microtime() );
 		$wp_ffpc_gentime = ( $mtime[1] + $mtime[0] )- $wp_ffpc_gentime;
 
-		$insertion = "\n<!-- \nWP-FFPC \n\tcache engine: ". $wp_ffpc_config['cache_type'] ."\n\tpage generation time: ". round( $wp_ffpc_gentime, 3 ) ." seconds\n\tgeneraton UNIX timestamp: ". time() . "\n\tgeneraton date: ". date( 'c' ) . "\n-->\n";
+		$insertion = "\n<!-- \nWP-FFPC \n\tcache engine: ". $wp_ffpc_config['cache_type'] ."\n\tpage generation time: ". round( $wp_ffpc_gentime, 3 ) ." seconds\n\tgeneraton UNIX timestamp: ". time() . "\n\tgeneraton date: ". date( 'c' ) . "\n\tserver: ". $_SERVER['SERVER_ADDR'] . "\n-->\n";
 		$index = stripos( $buffer , '</body>' );
 
 		$buffer = substr_replace( $buffer, $insertion, $index, 0);
