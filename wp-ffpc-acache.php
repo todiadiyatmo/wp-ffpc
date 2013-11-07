@@ -253,8 +253,13 @@ function wp_ffpc_callback( $buffer ) {
 		}
 	}
 
-	if ( is_404() )
+	if ( is_404() ) {
 		$meta['status'] = 404;
+	        header("HTTP/1.1 404 Not Found");
+	        flush();
+	        die();
+	}
+
 
 	/* redirect page */
 	if ( $wp_ffpc_redirect != null)
