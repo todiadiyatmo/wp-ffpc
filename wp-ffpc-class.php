@@ -220,7 +220,7 @@ if ( ! class_exists( 'WP_FFPC' ) ) {
 				if ( !empty ( $memcache_settings ) && $this->options['cache_type'] == 'memcache' )
 				{
 					$memcache_protocol = strtolower($memcache_settings['memcache.protocol']['local_value']);
-					if ( $memcached_protocol == 'binary' ) {
+					if ( $memcache_protocol == 'binary' ) {
 						$this->errors['binary_memcache'] = __('WARNING: Memcache extension is configured to use binary mode. This is very buggy and the plugin will most probably not work correctly. <br />Please consider to change either to ASCII mode or to Memcached extension.', $this->plugin_constant );
 					}
 				}
