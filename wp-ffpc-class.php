@@ -250,9 +250,8 @@ if ( ! class_exists( 'WP_FFPC' ) ) {
 
 		/**
 		 * uninstall hook function, to be extended
-		 * [TODO] static abstraction is not allowed in PHP; how to do this?
 		 */
-		static public function plugin_uninstall( $delete_options = true ) {
+		public function plugin_uninstall( $delete_options = true ) {
 			/* delete advanced-cache.php file */
 			unlink ( $this->acache );
 
@@ -606,7 +605,8 @@ if ( ! class_exists( 'WP_FFPC' ) ) {
 					</dt>
 					<dd>
 						<input type="text" name="hosts" id="hosts" value="<?php echo $this->options['hosts']; ?>" />
-						<span class="description"><?php _e('List all valid like host:port,host:port,... <br />No spaces are allowed, please stick to use ":" for separating host and port and "," for separating entries. Do not add trailing ",".', $this->plugin_constant); ?></span>
+						<span class="description">
+						<?php _e('List of memcached backends, with the following syntax: <br />- in case of TCP based connections, list the servers as host1:port1,host2:port2,... . Do not add trailing , and always separate host and port with : .<br />- in2.0.0b1 case using unix sockets with the Memcache driver: unix:// ', $this->plugin_constant); ?></span>
 					</dd>
 					<dt>
 						<label for="persistent"><?php _e('Persistent memcache connections', $this->plugin_constant); ?></label>
