@@ -4,7 +4,7 @@ Donate link: https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_i
 Tags: cache, page cache, full page cache, nginx, memcached, apc, speed
 Requires at least: 3.0
 Tested up to: 3.9
-Stable tag: 1.3.1
+Stable tag: 1.3.2
 License: GPLv3
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
 
@@ -88,6 +88,17 @@ Please post feature requests to [WP-FFPC feature request topic](http://wordpress
 5. NGiNX example
 
 == Changelog ==
+
+= 1.3.2 =
+*2014-04-09*
+
+What's fixed:
+
+* 1.3.1 was a quickfix for an uncommitted change required for 1.3 to work.
+* removed PHP warning in case WP_CACHE was off ( see https://github.com/petermolnar/wp-ffpc/issues/14 )
+* PHP notices in log from [Harold Kyle](https://github.com/haroldkyle "Harold Kyle")
+* ms is really second
+
 
 = 1.3 =
 *2014-04-04*

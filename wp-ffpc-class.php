@@ -183,7 +183,8 @@ if ( ! class_exists( 'WP_FFPC' ) ) {
 			add_action( 'edit_post', array( &$this->backend , 'clear' ), 0 );
 
 			/* add filter for catching canonical redirects */
-			add_filter('redirect_canonical', 'wp_ffpc_redirect_callback', 10, 2);
+			if ( ! WP_CACHE )
+				add_filter('redirect_canonical', 'wp_ffpc_redirect_callback', 10, 2);
 
 			/* clean up schedule if needed */
 			if ( !isset( $this->options['precache_schedule'] ) || $this->options['precache_schedule'] == 'null' ) {
@@ -356,13 +357,6 @@ if ( ! class_exists( 'WP_FFPC' ) ) {
 
 			/* display donation form */
 			$this->plugin_donation_form();
-
-			/**
-			 * if options were saved, display saved message
-			 */
-			if ( ! empty( $this->broadcast_message ) ) { ?>
-				<div class="updated"><?php echo $this->broadcast_message; ?></div>
-			<?php }
 
 			/**
 			 * if options were saved, display saved message

@@ -308,7 +308,7 @@ function wp_ffpc_callback( $buffer ) {
 	$prefix_data = $wp_ffpc_backend->key ( $wp_ffpc_config['prefix_data'] );
 	$wp_ffpc_backend->set ( $prefix_data , $buffer );
 
-	if ( $meta['status'] == 404 ) {
+	if ( !empty( $meta['status'] ) && $meta['status'] == 404 ) {
 		header("HTTP/1.1 404 Not Found");
 	}
 	else {
