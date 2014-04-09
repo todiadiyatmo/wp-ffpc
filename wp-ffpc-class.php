@@ -448,7 +448,7 @@ if ( ! class_exists( 'WP_FFPC' ) ) {
 					</dd>
 
 					<dt>
-						<label for="expire"><?php _e('Expiration time (ms)', $this->plugin_constant); ?></label>
+						<label for="expire"><?php _e('Expiration time (seconds)', $this->plugin_constant); ?></label>
 					</dt>
 					<dd>
 						<input type="number" name="expire" id="expire" value="<?php echo $this->options['expire']; ?>" />
