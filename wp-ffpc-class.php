@@ -183,7 +183,7 @@ if ( ! class_exists( 'WP_FFPC' ) ) {
 			add_action( 'edit_post', array( &$this->backend , 'clear' ), 0 );
 
 			/* add filter for catching canonical redirects */
-			if ( ! WP_CACHE )
+			if ( WP_CACHE )
 				add_filter('redirect_canonical', 'wp_ffpc_redirect_callback', 10, 2);
 
 			/* clean up schedule if needed */
