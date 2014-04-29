@@ -30,7 +30,7 @@ if ( ! class_exists( 'WP_FFPC' ) ) {
 	 * @var array $shell_possibilities	List of possible precache worker callers
 	 [TODO] finish list of vars
 	 */
-	class WP_FFPC extends WP_Plugins_Abstract_v2 {
+	class WP_FFPC extends WP_Plugins_Abstract_v3 {
 		const host_separator  = ',';
 		const port_separator  = ':';
 		const donation_id_key = 'hosted_button_id=';
@@ -188,8 +188,7 @@ if ( ! class_exists( 'WP_FFPC' ) ) {
 
 			/* clean up schedule if needed */
 			if ( !isset( $this->options['precache_schedule'] ) || $this->options['precache_schedule'] == 'null' ) {
-				$this->log ( 'CRON clearing event' );
-				wp_clear_scheduled_hook ( self::precache_id );
+				$this->log ( sprintf ( __( 'clearing scheduled hook %s', $this->plugin_constant ), self::precache_id ) );
 			}
 
 			/* add precache coldrun action */
@@ -744,7 +743,7 @@ if ( ! class_exists( 'WP_FFPC' ) ) {
 				$this->scheduled = wp_schedule_event( time(), $this->options['precache_schedule'] , self::precache_id );
 			}
 			elseif ( ( !isset($this->options['precache_schedule']) || $this->options['precache_schedule'] == 'null' ) && !empty( $schedule ) ) {
-				$this->log ( __('Clearing WP-CRON clearing event ' , $this->plugin_constant ) );
+				$this->log ( __('Clearing WP-CRON scheduled hook ' , $this->plugin_constant ) );
 				wp_clear_scheduled_hook ( self::precache_id );
 			}
 

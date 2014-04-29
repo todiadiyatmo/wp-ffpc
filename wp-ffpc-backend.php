@@ -116,9 +116,8 @@ if (!class_exists('WP_FFPC_Backend')) {
 		public function key ( &$prefix ) {
 			/* data is string only with content, meta is not used in nginx */
 			$key = $prefix . str_replace ( array_keys( $this->urimap ), $this->urimap, $this->options['key'] );
-			$this->log (  __translate__('original key configuration: ', $this->plugin_constant ) . $this->options['key'] );
-			$this->log (  __translate__('setting key to: ', $this->plugin_constant ) . $key );
-
+			$this->log ( sprintf( __translate__( 'original key configuration: %s', $this->plugin_constant ),  $this->options['key'] ) );
+			$this->log ( sprintf( __translate__( 'setting key to: %s', $this->plugin_constant ),  $key ) );
 			return $key;
 		}
 
@@ -137,14 +136,14 @@ if (!class_exists('WP_FFPC_Backend')) {
 				return false;
 
 			/* log the current action */
-			$this->log (  __translate__('get ', $this->plugin_constant ). $key );
+			$this->log ( sprintf( __translate__( 'get %s', $this->plugin_constant ),  $key ) );
 
 			/* proxy to internal function */
 			$internal = $this->proxy( 'get' );
 			$result = $this->$internal( $key );
 
 			if ( $result === false  )
-				$this->log (  __translate__( "failed to get entry: ", $this->plugin_constant ) . $key );
+				$this->log ( sprintf( __translate__( 'failed to get entry: %s', $this->plugin_constant ),  $key ) );
 
 			return $result;
 		}
@@ -164,7 +163,7 @@ if (!class_exists('WP_FFPC_Backend')) {
 				return false;
 
 			/* log the current action */
-			$this->log( __translate__('set ', $this->plugin_constant ) . $key . __translate__(' expiration time: ', $this->plugin_constant ) . $this->options['expire']);
+			$this->log ( sprintf( __translate__( 'set %s expiration time: %s', $this->plugin_constant ),  $key, $this->options['expire'] ) );
 
 			/* proxy to internal function */
 			$internal = $this->options['cache_type'] . '_set';
@@ -172,7 +171,7 @@ if (!class_exists('WP_FFPC_Backend')) {
 
 			/* check result validity */
 			if ( $result === false )
-				$this->log (  __translate__('failed to set entry: ', $this->plugin_constant ) . $key, LOG_WARNING );
+				$this->log ( sprintf( __translate__( 'failed to set entry: %s', $this->plugin_constant ),  $key ), LOG_WARNING );
 
 			return $result;
 		}
@@ -232,7 +231,7 @@ if (!class_exists('WP_FFPC_Backend')) {
 
 				/* no path, don't do anything */
 				if ( empty( $path ) ) {
-					$this->log (  __translate__('unable to determine path from Post Permalink, post ID: ', $this->plugin_constant ) . $post_id , LOG_WARNING );
+					$this->log ( sprintf( __translate__( 'unable to determine path from Post Permalink, post ID: %s', $this->plugin_constant ),  $post_id ), LOG_WARNING );
 					return false;
 				}
 
@@ -499,11 +498,11 @@ if (!class_exists('WP_FFPC_Backend')) {
 
 			foreach ( $keys as $key => $dummy ) {
 				if ( ! apc_delete ( $key ) ) {
-					$this->log (  __translate__('Failed to delete APC entry: ', $this->plugin_constant ) . $key, LOG_ERR );
+					$this->log ( sprintf( __translate__( 'Failed to delete APC entry: %s', $this->plugin_constant ),  $key ), LOG_ERR );
 					//throw new Exception ( __translate__('Deleting APC entry failed with key ', $this->plugin_constant ) . $key );
 				}
 				else {
-					$this->log (  __translate__( 'APC entry delete: ', $this->plugin_constant ) . $key );
+					$this->log ( sprintf( __translate__( 'APC entry delete: %s', $this->plugin_constant ),  $key ) );
 				}
 			}
 		}
@@ -567,7 +566,7 @@ if (!class_exists('WP_FFPC_Backend')) {
 				/* only add servers that does not exists already  in connection pool */
 				if ( !@array_key_exists($server_id , $servers_alive ) ) {
 					$this->connection->addServer( $server['host'], $server['port'] );
-					$this->log (  $server_id . __translate__(" added, persistent mode: ", $this->plugin_constant ) . $this->options['persistent'] );
+					$this->log ( sprintf( __translate__( '%s added, persistent mode: %s', $this->plugin_constant ),  $server_id, $this->options['persistent'] ) );
 				}
 			}
 
@@ -591,7 +590,7 @@ if (!class_exists('WP_FFPC_Backend')) {
 				$this->status[$server_id] = 0;
 				/* if server uptime is not empty, it's most probably up & running */
 				if ( !empty($details['uptime']) ) {
-					$this->log (  $server_id . __translate__(" server is up & running", $this->plugin_constant ));
+					$this->log ( sprintf( __translate__( '%s server is up & running', $this->plugin_constant ),  $server_id ) );
 					$this->status[$server_id] = 1;
 				}
 			}
@@ -621,7 +620,8 @@ if (!class_exists('WP_FFPC_Backend')) {
 			/* if storing failed, log the error code */
 			if ( $result === false ) {
 				$code = $this->connection->getResultCode();
-				$this->log (  __translate__('unable to set entry ', $this->plugin_constant ) . $key . __translate__( ', Memcached error code: ', $this->plugin_constant ) . $code );
+				$this->log ( sprintf( __translate__( 'unable to set entry: %s', $this->plugin_constant ),  $key ) );
+				$this->log ( sprintf( __translate__( 'Memcached error code: %s', $this->plugin_constant ),  $code ) );
 				//throw new Exception ( __translate__('Unable to store Memcached entry ', $this->plugin_constant ) . $key . __translate__( ', error code: ', $this->plugin_constant ) . $code );
 			}
 
@@ -653,10 +653,11 @@ if (!class_exists('WP_FFPC_Backend')) {
 
 				if ( $kresult === false ) {
 					$code = $this->connection->getResultCode();
-					$this->log (  __translate__('unable to delete entry ', $this->plugin_constant ) . $key . __translate__( ', Memcached error code: ', $this->plugin_constant ) . $code );
+					$this->log ( sprintf( __translate__( 'unable to delete entry: %s', $this->plugin_constant ),  $key ) );
+					$this->log ( sprintf( __translate__( 'Memcached error code: %s', $this->plugin_constant ),  $code ) );
 				}
 				else {
-					$this->log (  __translate__( 'entry deleted: ', $this->plugin_constant ) . $key );
+					$this->log ( sprintf( __translate__( 'entry deleted: %s', $this->plugin_constant ),  $key ) );
 				}
 			}
 		}
@@ -702,7 +703,7 @@ if (!class_exists('WP_FFPC_Backend')) {
 				else
 					$this->status[$server_id] = $this->connection->$conn ( $server['host'] , $server['port'] );
 
-				$this->log ( $server_id . __translate__(" added, persistent mode: ", $this->plugin_constant ) . $this->options['persistent'] );
+				$this->log ( sprintf( __translate__( '%s added, persistent mode: %s', $this->plugin_constant ),  $server_id, $this->options['persistent'] ) );
 			}
 
 			/* backend is now alive */
@@ -721,9 +722,9 @@ if (!class_exists('WP_FFPC_Backend')) {
 			foreach ( $this->options['servers'] as $server_id => $server ) {
 				$this->status[$server_id] = $this->connection->getServerStatus( $server['host'], $server['port'] );
 				if ( $this->status[$server_id] == 0 )
-					$this->log ( $server_id . __translate__(" server is down", $this->plugin_constant ));
+					$this->log ( sprintf( __translate__( '%s server is down', $this->plugin_constant ),  $server_id ) );
 				else
-					$this->log ( $server_id . __translate__(" server is up & running", $this->plugin_constant ));
+					$this->log ( sprintf( __translate__( '%s server is up & running', $this->plugin_constant ),  $server_id ) );
 			}
 		}
 
@@ -772,10 +773,10 @@ if (!class_exists('WP_FFPC_Backend')) {
 				$kresult = $this->connection->delete( $key );
 
 				if ( $kresult === false ) {
-					$this->log (  __translate__('unable to delete entry ', $this->plugin_constant ) . $key );
+					$this->log ( sprintf( __translate__( 'unable to delete entry: %s', $this->plugin_constant ),  $key ) );
 				}
 				else {
-					$this->log (  __translate__( 'entry deleted: ', $this->plugin_constant ) . $key );
+					$this->log ( sprintf( __translate__( 'entry deleted: %s', $this->plugin_constant ),  $key ) );
 				}
 			}
 		}

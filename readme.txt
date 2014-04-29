@@ -4,18 +4,24 @@ Donate link: https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_i
 Tags: cache, page cache, full page cache, nginx, memcached, apc, speed
 Requires at least: 3.0
 Tested up to: 3.9
-Stable tag: 1.3.2
+Stable tag: 1.3.3
 License: GPLv3
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
 
-Fastest way of cache for WordPress: memcached + nginx!
+The fastest way to cache: full page in memory cache for WordPress!
 
 == Description ==
-WP-FFPC ( WordPress Fast Full Page Cache ) is a cache plugin for [WordPress](http://wordpress.org/ "WordPress"). It works with any webserver, including apache2, lighttpd, nginx, however, can be connected with [NGiNX](http://NGiNX.org "NGiNX") through memcached for unbeatable speed.
-Supports PHP Memcached, PHP Memcache and APC as storage engines, subdomain and domain based WordPress Networks.
+WP-FFPC ( WordPress Fast Full Page Cache ) is a cache plugin for [WordPress](http://wordpress.org/ "WordPress"). It works with any webserver, including apache2, lighttpd, nginx.
+It can be configured to join forces with [NGiNX](http://NGiNX.org "NGiNX")'s built-in [memcached plugin](http://nginx.org/en/docs/http/ngx_http_memcached_module.html "memcached plugin") for unbeatable speed.
 
 = Features: =
-* Wordpress Network support ( for subdomain layout )
+* Wordpress Network support
+  * fully supported domain/subdomain Networks
+  * will work in Network Enabled mode only for subdirectory based Multisites ( no per site setting possibility )
+* supports variable backends
+  * memcached with PHP Memcached
+  * memcached with PHP Memcache
+  * APC
 * cache exclude possibilities ( home, feeds, archieves, pages, singles )
 * (optional) cache for logged-in users
 * 404 caching
@@ -26,7 +32,6 @@ Supports PHP Memcached, PHP Memcache and APC as storage engines, subdomain and d
 * talkative log for [WP_DEBUG](http://codex.wordpress.org/WP_DEBUG "WP_DEBUG")
 * multiple memcached upstream support
 * precache ( manually or by timed by wp-cron )
-* [NGiNX](http://NGiNX.org "NGiNX") compatibility
 
 Many thanks for contributors, supporters, testers & bug reporters:
 
@@ -88,6 +93,14 @@ Please post feature requests to [WP-FFPC feature request topic](http://wordpress
 5. NGiNX example
 
 == Changelog ==
+
+= 1.3.3 =
+*2014-04-29*
+
+What's changed:
+
+* removed broadcast message
+* better logs ( additional logs and adding translation compatibility )
 
 = 1.3.2 =
 *2014-04-09*

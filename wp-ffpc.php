@@ -50,6 +50,6 @@ $wp_ffpc_defaults = array (
 	'key' => '$scheme://$host$request_uri',
 );
 
-$wp_ffpc = new WP_FFPC ( 'wp-ffpc', '1.2', 'WP-FFPC', $wp_ffpc_defaults, 'https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=XU3DG7LLA76WC' );
+$wp_ffpc = new WP_FFPC ( 'wp-ffpc', '1.3.3', 'WP-FFPC', $wp_ffpc_defaults, 'https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=XU3DG7LLA76WC' );
 
 ?>
