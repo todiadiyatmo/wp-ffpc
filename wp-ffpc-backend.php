@@ -181,6 +181,7 @@ if (!class_exists('WP_FFPC_Backend')) {
 		 *
 		 * @param string $post_id	ID of post to invalidate
 		 * @param boolean $force 	Force flush cache
+		 * @param boolean $comment	Clear a single page based on comment trigger
 		 *
 		 */
 		public function clear ( $post_id = false, $force = false ) {
@@ -196,7 +197,7 @@ if (!class_exists('WP_FFPC_Backend')) {
 			}
 
 			/* if invalidation method is set to full, flush cache */
-			if ( $this->options['invalidation_method'] === 0 || $force === true ) {
+			if ( ( $this->options['invalidation_method'] === 0 || $force === true ) ) {
 				/* log action */
 				$this->log (  __translate__('flushing cache', $this->plugin_constant ) );
 
@@ -261,6 +262,25 @@ if (!class_exists('WP_FFPC_Backend')) {
 			/* run clear */
 			$internal = $this->proxy ( 'clear' );
 			$this->$internal ( $to_clear );
+		}
+
+		/**
+		 * clear cache triggered by new comment
+		 *
+		 * @param $comment_id	Comment ID
+		 * @param $comment_object	The whole comment object ?
+		 */
+		public function clear_by_comment ( $comment_id, $comment_object ) {
+			if ( empty( $comment_id ) )
+				return false;
+
+			$comment = get_comment( $comment_id );
+			$post_id = $comment->comment_post_ID;
+			if ( !empty( $post_id ) )
+				$this->clear ( $post_id );
+
+			unset ( $comment );
+			unset ( $post_id );
 		}
 
 		/**
@@ -508,6 +528,98 @@ if (!class_exists('WP_FFPC_Backend')) {
 		}
 
 		/*********************** END APC FUNCTIONS ***********************/
+
+		/*********************** XCACHE FUNCTIONS ***********************/
+		/**
+		 * init apc backend: test APC availability and set alive status
+		 */
+		private function xcache_init () {
+			/* verify apc functions exist, apc extension is loaded */
+			if ( ! function_exists( 'xcache_info' ) ) {
+				$this->log (  __translate__('XCACHE extension missing', $this->plugin_constant ) );
+				return false;
+			}
+
+			/* verify apc is working */
+			$info = xcache_info();
+			if ( !empty( $info )) {
+				$this->log (  __translate__('backend OK', $this->plugin_constant ) );
+				$this->alive = true;
+			}
+		}
+
+		/**
+		 * health checker for Xcache
+		 *
+		 * @return boolean Aliveness status
+		 *
+		 */
+		private function xcache_status () {
+			$this->status = true;
+			return $this->alive;
+		}
+
+		/**
+		 * get function for APC backend
+		 *
+		 * @param string $key Key to get values for
+		 *
+		 * @return mixed Fetched data based on key
+		 *
+		*/
+		private function xcache_get ( &$key ) {
+			if ( xcache_isset ( $key ) )
+				return xcache_get( $key );
+			else
+				return false;
+		}
+
+		/**
+		 * Set function for APC backend
+		 *
+		 * @param string $key Key to set with
+		 * @param mixed $data Data to set
+		 *
+		 * @return boolean APC store outcome
+		 */
+		private function xcache_set (  &$key, &$data ) {
+			return xcache_set( $key , $data , $this->options['expire'] );
+		}
+
+
+		/**
+		 * Flushes APC user entry storage
+		 *
+		 * @return boolean APC flush outcome status
+		 *
+		*/
+		private function xcache_flush ( ) {
+			return xcache_clear_cache(XC_TYPE_VAR);
+		}
+
+		/**
+		 * Removes entry from APC or flushes APC user entry storage
+		 *
+		 * @param mixed $keys Keys to clear, string or array
+		*/
+		private function xcache_clear ( &$keys ) {
+			/* make an array if only one string is present, easier processing */
+			if ( !is_array ( $keys ) )
+				$keys = array ( $keys => true );
+
+			foreach ( $keys as $key => $dummy ) {
+				if ( ! xcache_unset ( $key ) ) {
+					$this->log ( sprintf( __translate__( 'Failed to delete XCACHE entry: %s', $this->plugin_constant ),  $key ), LOG_ERR );
+					//throw new Exception ( __translate__('Deleting APC entry failed with key ', $this->plugin_constant ) . $key );
+				}
+				else {
+					$this->log ( sprintf( __translate__( 'XCACHE entry delete: %s', $this->plugin_constant ),  $key ) );
+				}
+			}
+		}
+
+		/*********************** END XCACHE FUNCTIONS ***********************/
+
 
 		/*********************** MEMCACHED FUNCTIONS ***********************/
 		/**

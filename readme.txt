@@ -4,7 +4,7 @@ Donate link: https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_i
 Tags: cache, page cache, full page cache, nginx, memcached, apc, speed
 Requires at least: 3.0
 Tested up to: 3.9
-Stable tag: 1.3.3
+Stable tag: 1.4.0
 License: GPLv3
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
 
@@ -72,6 +72,7 @@ and **at least one** of the following for storage backend:
 * PHP APC
 * PHP Memcached > 0.1.0
 * PHP Memcache > 2.1.0
+* Xcache
 
 = How logging works in the plugin? =
 Log levels by default ( if logging enabled ) includes warning and error level standard PHP messages.
@@ -93,6 +94,14 @@ Please post feature requests to [WP-FFPC feature request topic](http://wordpress
 5. NGiNX example
 
 == Changelog ==
+
+= 1.4.0 =
+*2014-05-12*
+
+What's changed:
+
+* Xcache backend added ( alpha version, still under heavy testing )
+* invalidation for comment actions added
 
 = 1.3.3 =
 *2014-04-29*
