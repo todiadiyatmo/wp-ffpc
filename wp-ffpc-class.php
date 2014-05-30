@@ -115,13 +115,15 @@ if ( ! class_exists( 'WP_FFPC' ) ) {
 			/* cache type possible values array */
 			$this->select_cache_type = array (
 				'apc' => __( 'APC' , $this->plugin_constant ),
+				'apcu' => __( 'APCu' , $this->plugin_constant ),
 				'xcache' => __( 'XCache' , $this->plugin_constant ),
 				'memcache' => __( 'PHP Memcache' , $this->plugin_constant ),
 				'memcached' => __( 'PHP Memcached' , $this->plugin_constant ),
 			);
 			/* check for required functions / classes for the cache types */
 			$this->valid_cache_type = array (
-				'apc' => function_exists( 'apc_sma_info' ) ? true : false,
+				'apc' => function_exists( 'apc_cache_info' ) ? true : false,
+				'apcu' => function_exists( 'apcu_cache_info' ) ? true : false,
 				'xcache' => function_exists( 'xcache_info' ) ? true : false,
 				'memcache' => class_exists ( 'Memcache') ? true : false,
 				'memcached' => class_exists ( 'Memcached') ? true : false,

@@ -166,7 +166,7 @@ if (!class_exists('WP_FFPC_Backend')) {
 			$this->log ( sprintf( __translate__( 'set %s expiration time: %s', $this->plugin_constant ),  $key, $this->options['expire'] ) );
 
 			/* proxy to internal function */
-			$internal = $this->options['cache_type'] . '_set';
+			$internal = $this->proxy( 'set' );
 			$result = $this->$internal( $key, $data );
 
 			/* check result validity */
@@ -448,13 +448,13 @@ if (!class_exists('WP_FFPC_Backend')) {
 		 */
 		private function apc_init () {
 			/* verify apc functions exist, apc extension is loaded */
-			if ( ! function_exists( 'apc_sma_info' ) ) {
+			if ( ! function_exists( 'apc_cache_info' ) ) {
 				$this->log (  __translate__('APC extension missing', $this->plugin_constant ) );
 				return false;
 			}
 
 			/* verify apc is working */
-			if ( apc_sma_info() ) {
+			if ( apc_cache_info("user",true) ) {
 				$this->log (  __translate__('backend OK', $this->plugin_constant ) );
 				$this->alive = true;
 			}
@@ -518,6 +518,92 @@ if (!class_exists('WP_FFPC_Backend')) {
 
 			foreach ( $keys as $key => $dummy ) {
 				if ( ! apc_delete ( $key ) ) {
+					$this->log ( sprintf( __translate__( 'Failed to delete APC entry: %s', $this->plugin_constant ),  $key ), LOG_ERR );
+					//throw new Exception ( __translate__('Deleting APC entry failed with key ', $this->plugin_constant ) . $key );
+				}
+				else {
+					$this->log ( sprintf( __translate__( 'APC entry delete: %s', $this->plugin_constant ),  $key ) );
+				}
+			}
+		}
+
+		/*********************** END APC FUNCTIONS ***********************/
+		/*********************** APCu FUNCTIONS ***********************/
+		/**
+		 * init apcu backend: test APCu availability and set alive status
+		 */
+		private function apcu_init () {
+			/* verify apcu functions exist, apcu extension is loaded */
+			if ( ! function_exists( 'apcu_cache_info' ) ) {
+				$this->log (  __translate__('APCu extension missing', $this->plugin_constant ) );
+				return false;
+			}
+
+			/* verify apcu is working */
+			if ( apcu_cache_info("user",true) ) {
+				$this->log (  __translate__('backend OK', $this->plugin_constant ) );
+				$this->alive = true;
+			}
+		}
+
+		/**
+		 * health checker for APC
+		 *
+		 * @return boolean Aliveness status
+		 *
+		 */
+		private function apcu_status () {
+			$this->status = true;
+			return $this->alive;
+		}
+
+		/**
+		 * get function for APC backend
+		 *
+		 * @param string $key Key to get values for
+		 *
+		 * @return mixed Fetched data based on key
+		 *
+		*/
+		private function apcu_get ( &$key ) {
+			return apcu_fetch( $key );
+		}
+
+		/**
+		 * Set function for APC backend
+		 *
+		 * @param string $key Key to set with
+		 * @param mixed $data Data to set
+		 *
+		 * @return boolean APC store outcome
+		 */
+		private function apcu_set (  &$key, &$data ) {
+			return apcu_store( $key , $data , $this->options['expire'] );
+		}
+
+
+		/**
+		 * Flushes APC user entry storage
+		 *
+		 * @return boolean APC flush outcome status
+		 *
+		*/
+		private function apcu_flush ( ) {
+			return apcu_clear_cache();
+		}
+
+		/**
+		 * Removes entry from APC or flushes APC user entry storage
+		 *
+		 * @param mixed $keys Keys to clear, string or array
+		*/
+		private function apcu_clear ( &$keys ) {
+			/* make an array if only one string is present, easier processing */
+			if ( !is_array ( $keys ) )
+				$keys = array ( $keys => true );
+
+			foreach ( $keys as $key => $dummy ) {
+				if ( ! apcu_delete ( $key ) ) {
 					$this->log ( sprintf( __translate__( 'Failed to delete APC entry: %s', $this->plugin_constant ),  $key ), LOG_ERR );
 					//throw new Exception ( __translate__('Deleting APC entry failed with key ', $this->plugin_constant ) . $key );
 				}

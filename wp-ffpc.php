@@ -3,7 +3,7 @@
 Plugin Name: WP-FFPC
 Plugin URI: http://petermolnar.eu/wordpress/wp-ffpc
 Description: WordPress cache plugin for memcached & nginx - unbeatable speed
-Version: 1.4.0
+Version: 1.5.0
 Author: Peter Molnar <hello@petermolnar.eu>
 Author URI: http://petermolnar.eu/
 License: GPLv3
