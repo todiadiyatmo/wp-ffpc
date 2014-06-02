@@ -631,6 +631,31 @@ if ( ! class_exists( 'WP_FFPC' ) ) {
 						<input type="checkbox" name="persistent" id="persistent" value="1" <?php checked($this->options['persistent'],true); ?> />
 						<span class="description"><?php _e('Make all memcache(d) connections persistent. Be careful with this setting, always test the outcome.', $this->plugin_constant); ?></span>
 					</dd>
+
+					<?php
+					if ( strstr ( $this->options['cache_type'], 'memcached') && extension_loaded ( 'memcached' ) && version_compare( phpversion( 'memcached' ) , '2.0.0', '>=' ) ) { ?>
+					<?php
+						if ( ! ini_get('memcached.use_sasl') && ( !empty( $this->options['authuser'] ) || !empty( $this->options['authpass'] ) ) ) { ?>
+							<div class="error"><p><strong><?php _e( 'WARNING: you\'ve entered username and/or password for memcached authentication ( or your browser\'s autocomplete did ) which will not work unless you enable memcached sasl in the PHP settings: add `memcached.use_sasl=1` to php.ini' , $this->plugin_constant ) ?></strong></p></div>
+					<?php } ?>
+					<dt>
+						<label for="authuser"><?php _e('Authentication: username', $this->plugin_constant); ?></label>
+					</dt>
+					<dd>
+						<input type="text" name="authuser" id="authuser" value="<?php echo $this->options['authuser']; ?>" />
+						<span class="description">
+						<?php _e('Username for authentication with memcached backends', $this->plugin_constant); ?></span>
+					</dd>
+
+					<dt>
+						<label for="authpass"><?php _e('Authentication: password', $this->plugin_constant); ?></label>
+					</dt>
+					<dd>
+						<input type="password" name="authpass" id="authpass" value="<?php echo $this->options['authpass']; ?>" />
+						<span class="description">
+						<?php _e('Password for authentication with memcached backends - WARNING, the password will be stored plain-text since it needs to be used!', $this->plugin_constant); ?></span>
+					</dd>
+					<?php } ?>
 				</dl>
 				</fieldset>
 

@@ -29,6 +29,8 @@ include_once ( 'wp-ffpc-class.php' );
 
 $wp_ffpc_defaults = array (
 	'hosts'=>'127.0.0.1:11211',
+	'authpass'=>'',
+	'authuser'=>'',
 	'expire'=>300,
 	'invalidation_method'=>0,
 	'prefix_meta' =>'meta-',
@@ -51,6 +53,6 @@ $wp_ffpc_defaults = array (
 	'comments_invalidate' => true,
 );
 
-$wp_ffpc = new WP_FFPC ( 'wp-ffpc', '1.4.0', 'WP-FFPC', $wp_ffpc_defaults, 'https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=XU3DG7LLA76WC' );
+$wp_ffpc = new WP_FFPC ( 'wp-ffpc', '1.6.0', 'WP-FFPC', $wp_ffpc_defaults, 'https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=XU3DG7LLA76WC' );
 
 ?>

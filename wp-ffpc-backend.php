@@ -735,6 +735,10 @@ if (!class_exists('WP_FFPC_Backend')) {
 				/* use binary and not compressed format, good for nginx and still fast */
 				$this->connection->setOption( Memcached::OPT_COMPRESSION , false );
 				$this->connection->setOption( Memcached::OPT_BINARY_PROTOCOL , true );
+
+				if ( version_compare( phpversion( 'memcached' ) , '2.0.0', '>=' ) && ini_get( 'memcached.use_sasl' ) == 1 ) {
+					$this->connection->setSaslAuthData ( $this->options['authuser'], $this->options['authpass']);
+				}
 			}
 
 			/* check if initialization was success or not */
