@@ -53,6 +53,6 @@ $wp_ffpc_defaults = array (
 	'comments_invalidate' => true,
 );
 
-$wp_ffpc = new WP_FFPC ( 'wp-ffpc', '1.6.0', 'WP-FFPC', $wp_ffpc_defaults, 'https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=XU3DG7LLA76WC' );
+$wp_ffpc = new WP_FFPC ( 'wp-ffpc', '1.6.0', 'WP-FFPC', $wp_ffpc_defaults, 'PeterMolnar_WordPressPlugins_wp-ffpc_HU' , 'WP-FFPC' , 'FA3NT7XDVHPWU' );
 
 ?>
