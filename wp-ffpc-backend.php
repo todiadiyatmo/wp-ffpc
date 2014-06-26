@@ -57,7 +57,7 @@ class WP_FFPC_Backend {
 		$this->cookies = array ( 'comment_author_' , 'wordpressuser_' , 'wp-postpass_', 'wordpress_logged_in_' );
 
 		/* make utilities singleton */
-		$this->utilities = PluginUtils::S();
+		$this->utilities = new PluginUtils();
 
 		/* map the key with the predefined schemes */
 		$ruser = isset ( $_SERVER['REMOTE_USER'] ) ? $_SERVER['REMOTE_USER'] : '';
