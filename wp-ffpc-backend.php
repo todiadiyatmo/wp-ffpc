@@ -520,7 +520,7 @@ class WP_FFPC_Backend {
 		}
 
 		/* verify apcu is working */
-		if ( apcu_cache_info("user",true) ) {
+		if ( apcu_cache_info("user") ) {
 			$this->log (  __translate__('backend OK', $this->plugin_constant ) );
 			$this->alive = true;
 		}
@@ -603,6 +603,14 @@ class WP_FFPC_Backend {
 		/* verify apc functions exist, apc extension is loaded */
 		if ( ! function_exists( 'xcache_info' ) ) {
 			$this->log (  __translate__('XCACHE extension missing', $this->plugin_constant ) );
+			return false;
+		}
+
+		$xcache_admin = ini_get ( 'xcache.admin.user' );
+		$xcache_pass = ini_get ( 'xcache.admin.pass' );
+
+		if ( empty( $xcache_admin ) || empty( $xcache_pass ) ) {
+			$this->log (  __translate__('XCACHE xcache.admin.user or xcache.admin.pass is not set in php.ini. Please set them, otherwise the use cache part of xcache is not accessible.', $this->plugin_constant ) );
 			return false;
 		}
 
@@ -716,7 +724,7 @@ class WP_FFPC_Backend {
 			$this->connection->setOption( Memcached::OPT_COMPRESSION , false );
 			$this->connection->setOption( Memcached::OPT_BINARY_PROTOCOL , true );
 
-			if ( version_compare( phpversion( 'memcached' ) , '2.0.0', '>=' ) && ini_get( 'memcached.use_sasl' ) == 1 ) {
+			if ( version_compare( phpversion( 'memcached' ) , '2.0.0', '>=' ) && ini_get( 'memcached.use_sasl' ) == 1 && isset($this->options['authpass']) && !empty($this->options['authpass']) && isset($this->options['authuser']) && !empty($this->options['authuser']) ) {
 				$this->connection->setSaslAuthData ( $this->options['authuser'], $this->options['authpass']);
 			}
 		}

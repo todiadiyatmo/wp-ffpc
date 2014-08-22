@@ -26,7 +26,7 @@ if (defined('SID') && SID != '')
 $wp_ffpc_uri = $_SERVER['REQUEST_URI'];
 
 /* no cache for uri with query strings, things usually go bad that way */
-if ( stripos($wp_ffpc_uri, '?') !== false)
+if ( isset($wp_ffpc_config['nocache_dyn']) && !empty($wp_ffpc_config['nocache_dyn']) && stripos($wp_ffpc_uri, '?') !== false ) {
 	return false;
 
 /* no cache for pages starting with /wp- like WP admin */
@@ -64,6 +64,14 @@ if ( isset($wp_ffpc_config['nocache_cookies']) && !empty($wp_ffpc_config['nocach
 				}
 			}
 		}
+	}
+}
+
+/* no cache for excluded URL patterns */
+if ( isset($wp_ffpc_config['nocache_url']) && trim($wp_ffpc_config['nocache_url']) ) {
+	$pattern = sprintf('#%s#', trim($wp_ffpc_config['nocache_url']));
+	if ( preg_match($pattern, $wp_ffpc_uri) ) {
+		return false;
 	}
 }
 
@@ -254,7 +262,7 @@ function wp_ffpc_callback( $buffer ) {
 		}
 	}
 
-	if ( is_404() ) 
+	if ( is_404() )
 		$meta['status'] = 404;
 
 	/* redirect page */

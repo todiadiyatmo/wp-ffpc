@@ -1,9 +1,9 @@
 <?php
 /*
 Plugin Name: WP-FFPC
-Plugin URI: http://petermolnar.eu/wordpress/wp-ffpc
-Description: WordPress cache plugin for memcached & nginx - unbeatable speed
-Version: 1.5.0
+Plugin URI: https://github.com/petermolnar/wp-ffpc
+Description: WordPress in-memory full page cache plugin
+Version: 1.6.0
 Author: Peter Molnar <hello@petermolnar.eu>
 Author URI: http://petermolnar.eu/
 License: GPLv3
@@ -45,6 +45,8 @@ $wp_ffpc_defaults = array (
 	'nocache_single' => false,
 	'nocache_page' => false,
 	'nocache_cookies' => false,
+	'nocache_dyn' => true,
+	'nocache_url' => '',
 	'persistent' => false,
 	'response_header' => false,
 	'generate_time' => false,

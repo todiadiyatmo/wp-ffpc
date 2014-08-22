@@ -3,9 +3,9 @@
 if ( ! class_exists( 'WP_FFPC' ) ) :
 
 /* get the plugin abstract class*/
-include_once ( 'wp-common/plugin_abstract.php' );
+include_once ( dirname(__FILE__) . '/wp-common/plugin_abstract.php' );
 /* get the common functions class*/
-include_once ( 'wp-ffpc-backend.php' );
+include_once ( dirname(__FILE__) .'/wp-ffpc-backend.php' );
 
 /**
  * main wp-ffpc class
@@ -62,6 +62,20 @@ class WP_FFPC extends PluginAbstract {
 	private $backend = NULL;
 	private $scheduled = false;
 	private $errors = array();
+
+	/**
+	 *
+	 */
+	public function plugin_post_construct () {
+		$this->plugin_url = plugin_dir_url( __FILE__ );
+		$this->plugin_dir = plugin_dir_path( __FILE__ );
+
+		$this->common_url = $this->plugin_url . self::common_slug;
+		$this->common_dir = $this->plugin_dir . self::common_slug;
+
+		$this->admin_css_handle = $this->plugin_constant . '-admin-css';
+		$this->admin_css_url = $this->common_url . 'wp-admin.css';
+	}
 
 	/**
 	 * init hook function runs before admin panel hook, themeing and options read
@@ -272,12 +286,11 @@ class WP_FFPC extends PluginAbstract {
 	 */
 	public function plugin_extend_admin_init () {
 		/* save parameter updates, if there are any */
-		if ( isset( $_POST[ $this->button_flush ] ) ) {
-
+		if ( isset( $_POST[ $this->button_flush ] ) && check_admin_referer ( $this->plugin_constant ) ) {
 			/* remove precache log entry */
-			$this->_delete_option( self::precache_log  );
+			$this->utils->_delete_option( self::precache_log  );
 			/* remove precache timestamp entry */
-			$this->_delete_option( self::precache_timestamp );
+			$this->utils->_delete_option( self::precache_timestamp );
 
 			/* remove precache logfile */
 			if ( @file_exists ( $this->precache_logfile ) ) {
@@ -296,8 +309,7 @@ class WP_FFPC extends PluginAbstract {
 		}
 
 		/* save parameter updates, if there are any */
-		if ( isset( $_POST[ $this->button_precache ] ) ) {
-
+		if ( isset( $_POST[ $this->button_precache ] ) && check_admin_referer ( $this->plugin_constant ) ) {
 			/* is no shell function is possible, fail */
 			if ( $this->shell_function == false ) {
 				$this->status = 5;
@@ -407,15 +419,17 @@ class WP_FFPC extends PluginAbstract {
 
 				/* we need to go through all servers */
 				$servers = $this->backend->status();
-				foreach ( $servers as $server_string => $status ) {
-					echo $server_string ." => ";
+				if ( is_array( $servers ) && !empty ( $servers ) ) {
+					foreach ( $servers as $server_string => $status ) {
+						echo $server_string ." => ";
 
-					if ( $status == 0 )
-						_e ( '<span class="error-msg">down</span><br />', $this->plugin_constant );
-					elseif ( ( $this->options['cache_type'] == 'memcache' && $status > 0 )  || $status == 1 )
-						_e ( '<span class="ok-msg">up & running</span><br />', $this->plugin_constant );
-					else
-						_e ( '<span class="error-msg">unknown, please try re-saving settings!</span><br />', $this->plugin_constant );
+						if ( $status == 0 )
+							_e ( '<span class="error-msg">down</span><br />', $this->plugin_constant );
+						elseif ( ( $this->options['cache_type'] == 'memcache' && $status > 0 )  || $status == 1 )
+							_e ( '<span class="ok-msg">up & running</span><br />', $this->plugin_constant );
+						else
+							_e ( '<span class="error-msg">unknown, please try re-saving settings!</span><br />', $this->plugin_constant );
+					}
 				}
 
 				?></p><?php
@@ -423,6 +437,7 @@ class WP_FFPC extends PluginAbstract {
 		</div>
 		<form autocomplete="off" method="post" action="#" id="<?php echo $this->plugin_constant ?>-settings" class="plugin-admin">
 
+			<?php wp_nonce_field( $this->plugin_constant ); ?>
 			<ul class="tabs">
 				<li><a href="#<?php echo $this->plugin_constant ?>-type" class="wp-switch-editor"><?php _e( 'Cache type', $this->plugin_constant ); ?></a></li>
 				<li><a href="#<?php echo $this->plugin_constant ?>-debug" class="wp-switch-editor"><?php _e( 'Debug & in-depth', $this->plugin_constant ); ?></a></li>
@@ -600,6 +615,26 @@ class WP_FFPC extends PluginAbstract {
 					<input type="text" name="nocache_cookies" id="nocache_cookies" value="<?php if(isset( $this->options['nocache_cookies'] ) ) echo $this->options['nocache_cookies']; ?>" />
 					<span class="description"><?php _e('Exclude cookies names starting with this from caching. Separate multiple cookies names with commas.<br />If you are caching with nginx, you should update your nginx configuration and reload nginx after changing this value.', $this->plugin_constant); ?></span>
 				</dd>
+
+				<dt>
+					<label for="nocache_dyn"><?php _e("Don't cache dynamic requests", $this->plugin_constant); ?></label>
+				</dt>
+				<dd>
+					<input type="checkbox" name="nocache_dyn" id="nocache_dyn" value="1" <?php checked($this->options['nocache_dyn'],true); ?> />
+					<span class="description"><?php _e('Exclude every URL with "?" in it.', $this->plugin_constant); ?></span>
+				</dd>
+
+				<dt>
+					<label for="nocache_url"><?php _e("Don't cache following URL paths - use with caution!", $this->plugin_constant); ?></label>
+				</dt>
+				<dd>
+					<textarea name="nocache_url" id="nocache_url" rows="3" cols="100" class="large-text code"><?php
+						if( isset( $this->options['nocache_url'] ) ) {
+							echo $this->options['nocache_url'];
+						}
+					?></textarea>
+					<span class="description"><?php _e('Regular expressions use you must! e.g. <em>pattern1|pattern2|etc</em>', $this->plugin_constant); ?></span>
+				</dd>
 			</dl>
 			</fieldset>
 
@@ -717,6 +752,8 @@ class WP_FFPC extends PluginAbstract {
 
 		<form method="post" action="#" id="<?php echo $this->plugin_constant ?>-commands" class="plugin-admin" style="padding-top:2em;">
 
+			<?php wp_nonce_field( $this->plugin_constant ); ?>
+
 			<ul class="tabs">
 				<li><a href="#<?php echo $this->plugin_constant ?>-precache" class="wp-switch-editor"><?php _e( 'Precache', $this->plugin_constant ); ?></a></li>
 				<li><a href="#<?php echo $this->plugin_constant ?>-flush" class="wp-switch-editor"><?php _e( 'Empty cache', $this->plugin_constant ); ?></a></li>
@@ -824,9 +861,8 @@ class WP_FFPC extends PluginAbstract {
 	 *
 	 */
 	public function plugin_options_migrate( &$options ) {
-		$migrated = false;
 
-		if ( version_compare ( $options['version'] , $this->plugin_version , '<' ) ) {
+		if ( version_compare ( $options['version'] , $this->plugin_version, '<' ) ) {
 			/* cleanup possible leftover files from previous versions */
 			$check = array ( 'advanced-cache.php', 'nginx-sample.conf', 'wp-ffpc.admin.css', 'wp-ffpc-common.php' );
 			foreach ( $check as $fname ) {
@@ -844,37 +880,26 @@ class WP_FFPC extends PluginAbstract {
 
 				if ( empty ( $options ) && array_key_exists ( $this->global_config_key, $try ) ) {
 					$options = $try [ $this->global_config_key ];
-					$migrated = true;
 				}
 				elseif ( empty ( $options ) && array_key_exists ( 'host', $try ) ) {
 					$options = $try;
-					$migrated = true;
 				}
 			 }
 
 			/* updating from version <= 0.4.x */
 			if ( !empty ( $options['host'] ) ) {
 				$options['hosts'] = $options['host'] . ':' . $options['port'];
-				$migrated = true;
 			}
 			/* migrating from version 0.6.x */
 			elseif ( is_array ( $options ) && array_key_exists ( $this->global_config_key , $options ) ) {
 				$options = $options[ $this->global_config_key ];
-				$migrated = true;
-			}
-			/* migrating from something, drop previous config */
-			else {
-				$options = array();
 			}
 
-			if ( $migrated ) {
-				/* renamed options */
-				if ( isset ( $options['syslog'] ) )
-					$options['log'] = $options['syslog'];
-				if ( isset ( $options['debug'] ) )
+			/* renamed options */
+			if ( isset ( $options['syslog'] ) )
+				$options['log'] = $options['syslog'];
+			if ( isset ( $options['debug'] ) )
 				$options['response_header'] = $options['debug'];
-			}
-
 		}
 	}
 
@@ -1146,7 +1171,7 @@ class WP_FFPC extends PluginAbstract {
 			}
 
 			/* in case the bloglinks are relative links add the base url, site specific */
-			$baseurl = empty( $url ) ? $this->_site_url() : $url;
+			$baseurl = empty( $url ) ? $this->utils->_site_url() : $url;
 			if ( !strstr( $permalink, $baseurl ) ) {
 				$permalink = $baseurl . $permalink;
 			}
