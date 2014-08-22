@@ -221,6 +221,17 @@ class WP_FFPC_Backend {
 			$this->taxonomy_links( $to_clear );
 		}
 
+		/* clear pasts index page if settings requires it */
+		if ( $this->options['invalidation_method'] == 3 ) {
+			$posts_page_id = get_option( 'page_for_posts' );
+			$post_type = get_post_type( $post_id );
+
+			if ($post_type === 'post' && $posts_page_id != $post_id) {
+				$this->clear($posts_page_id, $force);
+			}
+		}
+
+
 		/* if there's a post id pushed, it needs to be invalidated in all cases */
 		if ( !empty ( $post_id ) ) {
 
