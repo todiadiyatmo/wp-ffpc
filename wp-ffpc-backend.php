@@ -85,6 +85,27 @@ class WP_FFPC_Backend {
 
 	}
 
+
+	public static function parse_urimap($uri, $default_urimap=null) {
+		$uri_parts = parse_url( $uri );
+
+		$uri_map = array(
+			'$scheme' => $uri_parts['scheme'],
+			'$host' => $uri_parts['host'],
+			'$request_uri' => $uri_parts['path']
+		);
+
+		if (is_array($default_urimap)) {
+			$uri_map = array_merge($default_urimap, $uri_map);
+		}
+
+		return $uri_map;
+	}
+
+	public static function map_urimap($urimap, $subject) {
+		return str_replace(array_keys($urimap), $urimap, $subject);
+	}
+
 	/*********************** PUBLIC / PROXY FUNCTIONS ***********************/
 
 	/**
@@ -95,7 +116,7 @@ class WP_FFPC_Backend {
 	 */
 	public function key ( &$prefix ) {
 		/* data is string only with content, meta is not used in nginx */
-		$key = $prefix . str_replace ( array_keys( $this->urimap ), $this->urimap, $this->options['key'] );
+		$key = $prefix . self::map_urimap($this->urimap, $this->options['key']);
 		$this->log ( sprintf( __translate__( 'original key configuration: %s', $this->plugin_constant ),  $this->options['key'] ) );
 		$this->log ( sprintf( __translate__( 'setting key to: %s', $this->plugin_constant ),  $key ) );
 		return $key;
@@ -207,24 +228,36 @@ class WP_FFPC_Backend {
 			if ( !function_exists('get_permalink') )
 				include_once ( ABSPATH . 'wp-includes/link-template.php' );
 
-			/* get path from permalink */
-			$path = substr ( get_permalink( $post_id ) , 7 );
+			/* get permalink */
+			$permalink = get_permalink( $post_id );
 
 			/* no path, don't do anything */
-			if ( empty( $path ) ) {
+			if ( empty( $permalink ) ) {
 				$this->log ( sprintf( __translate__( 'unable to determine path from Post Permalink, post ID: %s', $this->plugin_constant ),  $post_id ), LOG_WARNING );
 				return false;
 			}
 
-			if ( isset($_SERVER['HTTPS']) && ( ( strtolower($_SERVER['HTTPS']) == 'on' )  || ( $_SERVER['HTTPS'] == '1' ) ) )
-				$protocol = 'https://';
-			else
-				$protocol = 'http://';
+			/*
+			 * It is possible that post/page is paginated with <!--nextpage-->
+			 * Wordpress doesn't seem to expose the number of pages via API.
+			 * So let's just count it.
+			 */
+			$content_post = get_post( $post_id );
+			$content = $content_post->post_content;
+			$number_of_pages = 1 + (int)preg_match_all('/<!--nextpage-->/', $content, $matches);
 
-			/* elements to clear
-			   values are keys, faster to process and eliminates duplicates
-			*/
-			$to_clear[ $protocol . $path ] = true;
+			$current_page_id = '';
+			do {
+				/* urimap */
+				$urimap = self::parse_urimap($permalink, $this->urimap);
+				$urimap['$request_uri'] = $urimap['$request_uri'] . ($current_page_id ? $current_page_id . '/' : '');
+
+				$clear_cache_key = self::map_urimap($urimap, $this->options['key']);
+
+				$to_clear[ $clear_cache_key ] = true;
+
+				$current_page_id = 1+(int)$current_page_id;
+			} while ($number_of_pages>1 && $current_page_id<=$number_of_pages);
 		}
 
 		foreach ( $to_clear as $link => $dummy ) {
