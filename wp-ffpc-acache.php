@@ -28,6 +28,7 @@ $wp_ffpc_uri = $_SERVER['REQUEST_URI'];
 /* no cache for uri with query strings, things usually go bad that way */
 if ( isset($wp_ffpc_config['nocache_dyn']) && !empty($wp_ffpc_config['nocache_dyn']) && stripos($wp_ffpc_uri, '?') !== false ) {
 	return false;
+}
 
 /* no cache for pages starting with /wp- like WP admin */
 if (stripos($wp_ffpc_uri, '/wp-') !== false)
