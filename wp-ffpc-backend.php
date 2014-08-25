@@ -271,8 +271,8 @@ class WP_FFPC_Backend {
 			} while ($number_of_pages>1 && $current_page_id<=$number_of_pages);
 		}
 
-		/* Hook to customise clearing array. */
-		apply_filters('wp_ffpc_to_clear_array', $to_clear, $post_id);
+		/* Hook to custom clearing array. */
+		$to_clear = apply_filters('wp_ffpc_to_clear_array', $to_clear, $post_id);
 
 		foreach ( $to_clear as $link => $dummy ) {
 			/* clear all feeds as well */
