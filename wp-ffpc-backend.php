@@ -461,7 +461,7 @@ class WP_FFPC_Backend {
 	 * @var mixed $message Message to log
 	 * @var int $log_level Log level
 	 */
-	private function log ( $message, $log_level = LOG_WARNING ) {
+	private function log ( $message, $log_level = LOG_NOTICE ) {
 		if ( !isset ( $this->options['log'] ) || $this->options['log'] != 1 )
 			return false;
 		else
