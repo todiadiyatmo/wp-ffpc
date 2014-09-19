@@ -180,6 +180,8 @@ class WP_FFPC extends PluginAbstract {
 		$post_types = get_post_types( );
 
 		/* cache invalidation hooks */
+		add_action(  'transition_post_status',  array( &$this->backend , 'clear_ng' ), 10, 3 );
+		/*
 		foreach ( $post_types as $post_type ) {
 			add_action( 'new_to_publish_' .$post_type , array( &$this->backend , 'clear' ), 0 );
 			add_action( 'draft_to_publish' .$post_type , array( &$this->backend , 'clear' ), 0 );
@@ -187,6 +189,7 @@ class WP_FFPC extends PluginAbstract {
 			add_action( 'private_to_publish' .$post_type , array( &$this->backend , 'clear' ), 0 );
 			add_action( 'publish_' . $post_type , array( &$this->backend , 'clear' ), 0 );
 		}
+		*/
 
 		/* comments invalidation hooks */
 		if ( $this->options['comments_invalidate'] ) {
@@ -462,11 +465,27 @@ class WP_FFPC extends PluginAbstract {
 				</dd>
 
 				<dt>
-					<label for="expire"><?php _e('Expiration time (seconds)', $this->plugin_constant); ?></label>
+					<label for="expire"><?php _e('Expiration time for posts', $this->plugin_constant); ?></label>
 				</dt>
 				<dd>
 					<input type="number" name="expire" id="expire" value="<?php echo $this->options['expire']; ?>" />
-					<span class="description"><?php _e('Sets validity time of entry in seconds', $this->plugin_constant); ?></span>
+					<span class="description"><?php _e('Sets validity time of post entry in seconds, including custom post types and pages.', $this->plugin_constant); ?></span>
+				</dd>
+
+				<dt>
+					<label for="expire_taxonomy"><?php _e('Expiration time for taxonomy', $this->plugin_constant); ?></label>
+				</dt>
+				<dd>
+					<input type="number" name="expire_taxonomy" id="expire_taxonomy" value="<?php echo $this->options['expire_taxonomy']; ?>" />
+					<span class="description"><?php _e('Sets validity time of taxonomy entry in seconds, including custom taxonomy.', $this->plugin_constant); ?></span>
+				</dd>
+
+				<dt>
+					<label for="expire_home"><?php _e('Expiration time for home', $this->plugin_constant); ?></label>
+				</dt>
+				<dd>
+					<input type="number" name="expire_home" id="expire_home" value="<?php echo $this->options['expire_home']; ?>" />
+					<span class="description"><?php _e('Sets validity time of home.', $this->plugin_constant); ?></span>
 				</dd>
 
 				<dt>

@@ -160,15 +160,32 @@ class WP_FFPC_Backend {
 		/* log the current action */
 		$this->log ( sprintf( __translate__( 'set %s expiration time: %s', $this->plugin_constant ),  $key, $this->options['expire'] ) );
 
+		/* expiration time based is based on type from now on */
+		/* fallback */
+		$expire = $this->options['expire'];
+
+		if ( is_home() || is_feed() )
+			$expire = $this->options['expire_home'];
+		elseif ( is_tax() || is_category() || is_tag() || is_archive() )
+			$expire = $this->options['expire_taxonomy'];
+
+		if ( empty($expire) )
+			return false;
+
 		/* proxy to internal function */
 		$internal = $this->proxy( 'set' );
-		$result = $this->$internal( $key, $data );
+		$result = $this->$internal( $key, $data, $expire );
 
 		/* check result validity */
 		if ( $result === false )
 			$this->log ( sprintf( __translate__( 'failed to set entry: %s', $this->plugin_constant ),  $key ), LOG_WARNING );
 
 		return $result;
+	}
+
+
+	public function clear_ng ( $new_status, $old_status, $post ) {
+		$this->clear ( $post->ID );
 	}
 
 	/**
@@ -512,8 +529,8 @@ class WP_FFPC_Backend {
 	 *
 	 * @return boolean APC store outcome
 	 */
-	private function apc_set (  &$key, &$data ) {
-		return apc_store( $key , $data , $this->options['expire'] );
+	private function apc_set (  &$key, &$data, &$expire ) {
+		return apc_store( $key , $data , $expire );
 	}
 
 
@@ -598,8 +615,8 @@ class WP_FFPC_Backend {
 	 *
 	 * @return boolean APC store outcome
 	 */
-	private function apcu_set (  &$key, &$data ) {
-		return apcu_store( $key , $data , $this->options['expire'] );
+	private function apcu_set (  &$key, &$data, &$expire ) {
+		return apcu_store( $key , $data , $expire );
 	}
 
 
@@ -635,106 +652,6 @@ class WP_FFPC_Backend {
 	}
 
 	/*********************** END APC FUNCTIONS ***********************/
-
-	/*********************** XCACHE FUNCTIONS ***********************/
-	/**
-	 * init apc backend: test APC availability and set alive status
-	 */
-	private function xcache_init () {
-		/* verify apc functions exist, apc extension is loaded */
-		if ( ! function_exists( 'xcache_info' ) ) {
-			$this->log (  __translate__('XCACHE extension missing', $this->plugin_constant ) );
-			return false;
-		}
-
-		$xcache_admin = ini_get ( 'xcache.admin.user' );
-		$xcache_pass = ini_get ( 'xcache.admin.pass' );
-
-		if ( empty( $xcache_admin ) || empty( $xcache_pass ) ) {
-			$this->log (  __translate__('XCACHE xcache.admin.user or xcache.admin.pass is not set in php.ini. Please set them, otherwise the use cache part of xcache is not accessible.', $this->plugin_constant ) );
-			return false;
-		}
-
-		/* verify apc is working */
-		$info = xcache_info();
-		if ( !empty( $info )) {
-			$this->log (  __translate__('backend OK', $this->plugin_constant ) );
-			$this->alive = true;
-		}
-	}
-
-	/**
-	 * health checker for Xcache
-	 *
-	 * @return boolean Aliveness status
-	 *
-	 */
-	private function xcache_status () {
-		$this->status = true;
-		return $this->alive;
-	}
-
-	/**
-	 * get function for APC backend
-	 *
-	 * @param string $key Key to get values for
-	 *
-	 * @return mixed Fetched data based on key
-	 *
-	*/
-	private function xcache_get ( &$key ) {
-		if ( xcache_isset ( $key ) )
-			return xcache_get( $key );
-		else
-			return false;
-	}
-
-	/**
-	 * Set function for APC backend
-	 *
-	 * @param string $key Key to set with
-	 * @param mixed $data Data to set
-	 *
-	 * @return boolean APC store outcome
-	 */
-	private function xcache_set (  &$key, &$data ) {
-		return xcache_set( $key , $data , $this->options['expire'] );
-	}
-
-
-	/**
-	 * Flushes APC user entry storage
-	 *
-	 * @return boolean APC flush outcome status
-	 *
-	*/
-	private function xcache_flush ( ) {
-		return xcache_clear_cache(XC_TYPE_VAR);
-	}
-
-	/**
-	 * Removes entry from APC or flushes APC user entry storage
-	 *
-	 * @param mixed $keys Keys to clear, string or array
-	*/
-	private function xcache_clear ( &$keys ) {
-		/* make an array if only one string is present, easier processing */
-		if ( !is_array ( $keys ) )
-			$keys = array ( $keys => true );
-
-		foreach ( $keys as $key => $dummy ) {
-			if ( ! xcache_unset ( $key ) ) {
-				$this->log ( sprintf( __translate__( 'Failed to delete XCACHE entry: %s', $this->plugin_constant ),  $key ), LOG_WARNING );
-				//throw new Exception ( __translate__('Deleting APC entry failed with key ', $this->plugin_constant ) . $key );
-			}
-			else {
-				$this->log ( sprintf( __translate__( 'XCACHE entry delete: %s', $this->plugin_constant ),  $key ) );
-			}
-		}
-	}
-
-	/*********************** END XCACHE FUNCTIONS ***********************/
-
 
 	/*********************** MEMCACHED FUNCTIONS ***********************/
 	/**
@@ -845,8 +762,8 @@ class WP_FFPC_Backend {
 	 * @param mixed $data Data to set
 	 *
 	 */
-	private function memcached_set ( &$key, &$data ) {
-		$result = $this->connection->set ( $key, $data , $this->options['expire']  );
+	private function memcached_set ( &$key, &$data, &$expire ) {
+		$result = $this->connection->set ( $key, $data , $expire  );
 
 		/* if storing failed, log the error code */
 		if ( $result === false ) {
@@ -979,8 +896,8 @@ class WP_FFPC_Backend {
 	 * @param mixed $data Data to set
 	 *
 	 */
-	private function memcache_set ( &$key, &$data ) {
-		$result = $this->connection->set ( $key, $data , 0 , $this->options['expire'] );
+	private function memcache_set ( &$key, &$data, &$expire ) {
+		$result = $this->connection->set ( $key, $data , 0 , $expire );
 		return $result;
 	}
 

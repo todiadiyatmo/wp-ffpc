@@ -4,7 +4,7 @@ Donate link: https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_i
 Tags: cache, page cache, full page cache, nginx, memcached, apc, speed
 Requires at least: 3.0
 Tested up to: 4.0
-Stable tag: 1.6.4
+Stable tag: 1.7.0
 License: GPLv3
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
 
@@ -34,17 +34,21 @@ It can be configured to join forces with [NGiNX](http://NGiNX.org "NGiNX")'s bui
 * talkative log for [WP_DEBUG](http://codex.wordpress.org/WP_DEBUG "WP_DEBUG")
 * multiple memcached upstream support
 * precache ( manually or by timed by wp-cron )
+* varying expiration time for posts, taxonomies and home
+
 
 Many thanks for donations, contributors, supporters, testers & bug reporters:
 
-* [Harold Kyle](https://github.com/haroldkyle "Harold Kyle")
-* [Eric Gilette](http://www.ericgillette.com/ "Eric Gilette")
-* [doconeill](http://wordpress.org/support/profile/doconeill "doconeill")
-* [Mark Costlow](mailto:cheeks@swcp.com "Mark Costlow")
-* [Jason Miller](mailto:jason@redconfetti.com "Jason Miller")
+* [Harold Kyle](https://github.com/haroldkyle)
+* [Eric Gilette](http://www.ericgillette.com/)
+* [doconeill](http://wordpress.org/support/profile/doconeill)
+* Mark Costlow
+* Jason Miller
 * [Dave Clark](https://github.com/dkcwd "Dave Clark")
 * Miguel Clara
 * [plescheff](https://github.com/plescheff)
+* [CotswoldPhoto](http://wordpress.org/support/profile/cotswoldphoto)
+* [tamagokun](https://github.com/tamagokun)
 
 == Installation ==
 
@@ -105,6 +109,13 @@ Version numbering logic:
 * every A. indicates BIG changes.
 * every .B version indicates new features.
 * every ..C indicates bugfixes for A.B version.
+
+= 1.7.0 =
+*2014-09-19*
+
+* **dropped Xcache support**, the reasons behind this is the outstandingly terrible documentation of Xcache
+* added varying expiration time options
+
 
 = 1.6.4 =
 *2014-09-12*
