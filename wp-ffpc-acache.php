@@ -30,10 +30,6 @@ $wp_ffpc_uri = $_SERVER['REQUEST_URI'];
 if ( isset($wp_ffpc_config['nocache_dyn']) && !empty($wp_ffpc_config['nocache_dyn']) && stripos($wp_ffpc_uri, '?') !== false )
 	return false;
 
-/* no cache for pages starting with /wp- like WP admin */
-if (stripos($wp_ffpc_uri, '/wp-') !== false)
-	return false;
-
 /* no cache for robots.txt */
 if ( stripos($wp_ffpc_uri, 'robots.txt') )
 	return false;

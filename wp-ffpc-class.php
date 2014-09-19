@@ -122,17 +122,17 @@ class WP_FFPC extends PluginAbstract {
 		$this->select_cache_type = array (
 			'apc' => __( 'APC' , $this->plugin_constant ),
 			'apcu' => __( 'APCu' , $this->plugin_constant ),
-			'xcache' => __( 'XCache' , $this->plugin_constant ),
 			'memcache' => __( 'PHP Memcache' , $this->plugin_constant ),
 			'memcached' => __( 'PHP Memcached' , $this->plugin_constant ),
+			'redis' => __( 'Redis (experimental, it will break!)' , $this->plugin_constant ),
 		);
 		/* check for required functions / classes for the cache types */
 		$this->valid_cache_type = array (
 			'apc' => function_exists( 'apc_cache_info' ) ? true : false,
 			'apcu' => function_exists( 'apcu_cache_info' ) ? true : false,
-			'xcache' => function_exists( 'xcache_info' ) ? true : false,
 			'memcache' => class_exists ( 'Memcache') ? true : false,
 			'memcached' => class_exists ( 'Memcached') ? true : false,
+			'redis' => class_exists( 'Redis' ) ? true : false,
 		);
 
 		/* invalidation method possible values array */
@@ -446,7 +446,7 @@ class WP_FFPC extends PluginAbstract {
 				<li><a href="#<?php echo $this->plugin_constant ?>-type" class="wp-switch-editor"><?php _e( 'Cache type', $this->plugin_constant ); ?></a></li>
 				<li><a href="#<?php echo $this->plugin_constant ?>-debug" class="wp-switch-editor"><?php _e( 'Debug & in-depth', $this->plugin_constant ); ?></a></li>
 				<li><a href="#<?php echo $this->plugin_constant ?>-exceptions" class="wp-switch-editor"><?php _e( 'Cache exceptions', $this->plugin_constant ); ?></a></li>
-				<li><a href="#<?php echo $this->plugin_constant ?>-memcached" class="wp-switch-editor"><?php _e( 'Memcache(d)', $this->plugin_constant ); ?></a></li>
+				<li><a href="#<?php echo $this->plugin_constant ?>-servers" class="wp-switch-editor"><?php _e( 'Backend settings', $this->plugin_constant ); ?></a></li>
 				<li><a href="#<?php echo $this->plugin_constant ?>-nginx" class="wp-switch-editor"><?php _e( 'nginx', $this->plugin_constant ); ?></a></li>
 				<li><a href="#<?php echo $this->plugin_constant ?>-precache" class="wp-switch-editor"><?php _e( 'Precache & precache log', $this->plugin_constant ); ?></a></li>
 			</ul>
@@ -601,60 +601,61 @@ class WP_FFPC extends PluginAbstract {
 				</dd>
 
 				<dt>
-					<label for="nocache_home"><?php _e("Don't cache home", $this->plugin_constant); ?></label>
-				</dt>
+					<?php _e("Excludes", $this->plugin_constant); ?></label>
 				<dd>
-					<input type="checkbox" name="nocache_home" id="nocache_home" value="1" <?php checked($this->options['nocache_home'],true); ?> />
-					<span class="description"><?php _e('Exclude home page from caching', $this->plugin_constant); ?></span>
-
-				</dd>
+					<table style="width:100%">
+						<thead>
+							<tr>
+								<th style="width:16%; text-align:left"><label for="nocache_home"><?php _e("Exclude home", $this->plugin_constant); ?></label></th>
+								<th style="width:16%; text-align:left"><label for="nocache_feed"><?php _e("Exclude feeds", $this->plugin_constant); ?></label></th>
+								<th style="width:16%; text-align:left"><label for="nocache_archive"><?php _e("Exclude archives", $this->plugin_constant); ?></label></th>
+								<th style="width:16%; text-align:left"><label for="nocache_page"><?php _e("Exclude pages", $this->plugin_constant); ?></label></th>
+								<th style="width:16%; text-align:left"><label for="nocache_single"><?php _e("Exclude singulars", $this->plugin_constant); ?></label></th>
+								<th style="width:17%; text-align:left"><label for="nocache_dyn"><?php _e("Dynamic requests", $this->plugin_constant); ?></label></th>
+							</tr>
+						</thead>
+						<tbody>
+								<tr>
+									<td>
+										<input type="checkbox" name="nocache_home" id="nocache_home" value="1" <?php checked($this->options['nocache_home'],true); ?> />
+										<span class="description"><?php _e('Never cache home.', $this->plugin_constant); ?>
+									</td>
+									<td>
+										<input type="checkbox" name="nocache_feed" id="nocache_feed" value="1" <?php checked($this->options['nocache_feed'],true); ?> />
+										<span class="description"><?php _e('Never cache feeds.', $this->plugin_constant); ?>
+									</td>
+									<td>
+										<input type="checkbox" name="nocache_archive" id="nocache_archive" value="1" <?php checked($this->options['nocache_archive'],true); ?> />
+										<span class="description"><?php _e('Never cache archives.', $this->plugin_constant); ?>
+									</td>
+									<td>
+										<input type="checkbox" name="nocache_page" id="nocache_page" value="1" <?php checked($this->options['nocache_page'],true); ?> />
+										<span class="description"><?php _e('Never cache pages.', $this->plugin_constant); ?>
+									</td>
+									<td>
+										<input type="checkbox" name="nocache_single" id="nocache_single" value="1" <?php checked($this->options['nocache_single'],true); ?> />
+										<span class="description"><?php _e('Never cache singulars.', $this->plugin_constant); ?>
+									</td>
+									<td>
+										<input type="checkbox" name="nocache_dyn" id="nocache_dyn" value="1" <?php checked($this->options['nocache_dyn'],true); ?> />
+					<span class="description"><?php _e('Exclude every URL with "?" in it.', $this->plugin_constant); ?></span>
+									</td>
+								</tr>
+						</tbody>
+					</table>
 
 				<dt>
-					<label for="nocache_feed"><?php _e("Don't cache feeds", $this->plugin_constant); ?></label>
-				</dt>
-				<dd>
-					<input type="checkbox" name="nocache_feed" id="nocache_feed" value="1" <?php checked($this->options['nocache_feed'],true); ?> />
-					<span class="description"><?php _e('Exclude feeds from caching.', $this->plugin_constant); ?></span>
-				</dd>
-
-				<dt>
-					<label for="nocache_archive"><?php _e("Don't cache archives", $this->plugin_constant); ?></label>
-				</dt>
-				<dd>
-					<input type="checkbox" name="nocache_archive" id="nocache_archive" value="1" <?php checked($this->options['nocache_archive'],true); ?> />
-					<span class="description"><?php _e('Exclude archives from caching.', $this->plugin_constant); ?></span>
-				</dd>
-
-				<dt>
-					<label for="nocache_single"><?php _e("Don't cache posts (and single-type entries)", $this->plugin_constant); ?></label>
-				</dt>
-				<dd>
-					<input type="checkbox" name="nocache_single" id="nocache_single" value="1" <?php checked($this->options['nocache_single'],true); ?> />
-					<span class="description"><?php _e('Exclude singles from caching.', $this->plugin_constant); ?></span>
-				</dd>
-
-				<dt>
-					<label for="nocache_page"><?php _e("Don't cache pages", $this->plugin_constant); ?></label>
-				</dt>
-				<dd>
-					<input type="checkbox" name="nocache_page" id="nocache_page" value="1" <?php checked($this->options['nocache_page'],true); ?> />
-					<span class="description"><?php _e('Exclude pages from caching.', $this->plugin_constant); ?></span>
-				</dd>
-
-				<dt>
-					<label for="nocache_cookies"><?php _e("Don't cache cookies", $this->plugin_constant); ?></label>
+					<label for="nocache_cookies"><?php _e("Exclude based on cookies", $this->plugin_constant); ?></label>
 				</dt>
 				<dd>
 					<input type="text" name="nocache_cookies" id="nocache_cookies" value="<?php if(isset( $this->options['nocache_cookies'] ) ) echo $this->options['nocache_cookies']; ?>" />
-					<span class="description"><?php _e('Exclude cookies names starting with this from caching. Separate multiple cookies names with commas.<br />If you are caching with nginx, you should update your nginx configuration and reload nginx after changing this value.', $this->plugin_constant); ?></span>
+					<span class="description"><?php _e('Exclude content based on cookies names starting with this from caching. Separate multiple cookies names with commas.<br />If you are caching with nginx, you should update your nginx configuration and reload nginx after changing this value.', $this->plugin_constant); ?></span>
 				</dd>
 
 				<dt>
-					<label for="nocache_dyn"><?php _e("Don't cache dynamic requests", $this->plugin_constant); ?></label>
+
 				</dt>
 				<dd>
-					<input type="checkbox" name="nocache_dyn" id="nocache_dyn" value="1" <?php checked($this->options['nocache_dyn'],true); ?> />
-					<span class="description"><?php _e('Exclude every URL with "?" in it.', $this->plugin_constant); ?></span>
 				</dd>
 
 				<dt>
@@ -671,8 +672,8 @@ class WP_FFPC extends PluginAbstract {
 			</dl>
 			</fieldset>
 
-			<fieldset id="<?php echo $this->plugin_constant ?>-memcached">
-			<legend><?php _e('Settings for memcached backend', $this->plugin_constant); ?></legend>
+			<fieldset id="<?php echo $this->plugin_constant ?>-servers">
+			<legend><?php _e('Backend server settings', $this->plugin_constant); ?></legend>
 			<dl>
 				<dt>
 					<label for="hosts"><?php _e('Hosts', $this->plugin_constant); ?></label>
@@ -680,18 +681,11 @@ class WP_FFPC extends PluginAbstract {
 				<dd>
 					<input type="text" name="hosts" id="hosts" value="<?php echo $this->options['hosts']; ?>" />
 					<span class="description">
-					<?php _e('List of memcached backends, with the following syntax: <br />- in case of TCP based connections, list the servers as host1:port1,host2:port2,... . Do not add trailing , and always separate host and port with : .<br />- in2.0.0b1 case using unix sockets with the Memcache driver: unix:// ', $this->plugin_constant); ?></span>
-				</dd>
-				<dt>
-					<label for="persistent"><?php _e('Persistent memcache connections', $this->plugin_constant); ?></label>
-				</dt>
-				<dd>
-					<input type="checkbox" name="persistent" id="persistent" value="1" <?php checked($this->options['persistent'],true); ?> />
-					<span class="description"><?php _e('Make all memcache(d) connections persistent. Be careful with this setting, always test the outcome.', $this->plugin_constant); ?></span>
+					<?php _e('List of backends, with the following syntax: <br />- in case of TCP based connections, list the servers as host1:port1,host2:port2,... . Do not add trailing , and always separate host and port with : .<br />- in2.0.0b1 case using unix sockets with the Memcache driver: unix:// ', $this->plugin_constant); ?></span>
 				</dd>
 
 				<?php
-				if ( strstr ( $this->options['cache_type'], 'memcached') && extension_loaded ( 'memcached' ) && version_compare( phpversion( 'memcached' ) , '2.0.0', '>=' ) ) { ?>
+				if ( strstr ( $this->options['cache_type'], 'memcached') && extension_loaded ( 'memcached' ) && version_compare( phpversion( 'memcached' ) , '2.0.0', '>=' ) || ( $this->options['cache_type'] == 'redis' ) ) { ?>
 				<?php
 					if ( ! ini_get('memcached.use_sasl') && ( !empty( $this->options['authuser'] ) || !empty( $this->options['authpass'] ) ) ) { ?>
 						<div class="error"><p><strong><?php _e( 'WARNING: you\'ve entered username and/or password for memcached authentication ( or your browser\'s autocomplete did ) which will not work unless you enable memcached sasl in the PHP settings: add `memcached.use_sasl=1` to php.ini' , $this->plugin_constant ) ?></strong></p></div>
@@ -872,6 +866,10 @@ class WP_FFPC extends PluginAbstract {
 	 * read hook; needs to be implemented
 	 */
 	public function plugin_extend_options_read( &$options ) {
+		/*if ( strstr( $this->options['nocache_url']), '^wp-'  )wp_login_url()
+		$this->options['nocache_url'] = */
+
+
 		/* read the global options, network compatibility */
 		$this->global_config = get_site_option( $this->global_option );
 

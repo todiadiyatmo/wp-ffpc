@@ -113,12 +113,24 @@ Version numbering logic:
 = 1.7.0 =
 *2014-09-19*
 
-* **dropped Xcache support**, the reasons behind this is the outstandingly terrible documentation of Xcache
+What's new:
+
 * added varying expiration time options
 
+What's changed:
+
+* **dropped Xcache support**: the reasons behind this is the outstandingly terrible documentation of Xcache
+* **dropped persistent memcache mode**: no one was using it and even if the were only caused trouble
+* **removed '/wp-' hardcoded cache exception**; this is now the default in the regex exceptions field as ^/wp-; please add this manually in case you've already been using the regex field
+
+What's on it's way:
+
+* brace yourselves, redis support is coming
 
 = 1.6.4 =
 *2014-09-12*
+
+What's fixed:
 
 * downgraded log level from halting-level fatal to warning ( thank you PHP for the consistent naming... ) in case the selected extension is missing
 * leftover code parts cleanup
@@ -126,16 +138,22 @@ Version numbering logic:
 = 1.6.3 =
 *2014-09-12*
 
+What's fixed:
+
 * there were still some alway-on log messages
 
 = 1.6.2 =
 *2014-09-05*
+
+What's fixed:
 
 * merge pulled from [plescheff](https://github.com/petermolnar/wp-ffpc/pull/25)
 * fixed bug of alway-on log messages ( warning was set to default where notice should have been )
 
 = 1.6.1 =
 *2014-09-04*
+
+What's fixed:
 
 1.6 release, correcting SVN madness with non-recursive copies.
 

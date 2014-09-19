@@ -672,11 +672,7 @@ class WP_FFPC_Backend {
 
 		/* check is there's no backend connection yet */
 		if ( $this->connection === NULL ) {
-			/* persistent backend needs an identifier */
-			if ( $this->options['persistent'] == '1' )
-				$this->connection = new Memcached( $this->plugin_constant );
-			else
-				$this->connection = new Memcached();
+			$this->connection = new Memcached();
 
 			/* use binary and not compressed format, good for nginx and still fast */
 			$this->connection->setOption( Memcached::OPT_COMPRESSION , false );
@@ -714,7 +710,7 @@ class WP_FFPC_Backend {
 			/* only add servers that does not exists already  in connection pool */
 			if ( !@array_key_exists($server_id , $servers_alive ) ) {
 				$this->connection->addServer( $server['host'], $server['port'] );
-				$this->log ( sprintf( __translate__( '%s added, persistent mode: %s', $this->plugin_constant ),  $server_id, $this->options['persistent'] ) );
+				$this->log ( sprintf( __translate__( '%s added', $this->plugin_constant ),  $server_id ) );
 			}
 		}
 
@@ -840,18 +836,13 @@ class WP_FFPC_Backend {
 
 		/* adding servers */
 		foreach ( $this->options['servers'] as $server_id => $server ) {
-			if ( $this->options['persistent'] == '1' )
-				$conn = 'pconnect';
-			else
-				$conn = 'connect';
-
 				/* in case of unix socket */
 			if ( $server['port'] === 0 )
-				$this->status[$server_id] = $this->connection->$conn ( 'unix:/' . $server['host'] );
+				$this->status[$server_id] = $this->connection->connect ( 'unix:/' . $server['host'] );
 			else
-				$this->status[$server_id] = $this->connection->$conn ( $server['host'] , $server['port'] );
+				$this->status[$server_id] = $this->connection->connect ( $server['host'] , $server['port'] );
 
-			$this->log ( sprintf( __translate__( '%s added, persistent mode: %s', $this->plugin_constant ),  $server_id, $this->options['persistent'] ) );
+			$this->log ( sprintf( __translate__( '%s added', $this->plugin_constant ),  $server_id ) );
 		}
 
 		/* backend is now alive */
@@ -869,7 +860,7 @@ class WP_FFPC_Backend {
 		/* get servers statistic from connection */
 		foreach ( $this->options['servers'] as $server_id => $server ) {
 			if ( $server['port'] === 0 )
-				$this->status[$server_id] = $this->connection->getServerStatus( $server['host'] );
+				$this->status[$server_id] = $this->connection->getServerStatus( $server['host'], 11211 );
 			else
 				$this->status[$server_id] = $this->connection->getServerStatus( $server['host'], $server['port'] );
 			if ( $this->status[$server_id] == 0 )
@@ -933,6 +924,153 @@ class WP_FFPC_Backend {
 	}
 
 	/*********************** END MEMCACHE FUNCTIONS ***********************/
+
+	/*********************** REDIS FUNCTIONS ***********************/
+	/**
+	 * init memcache backend
+	 */
+	private function redis_init () {
+		if (!class_exists('Redis')) {
+			$this->log (  __translate__('PHP Redis extension missing', $this->plugin_constant ), LOG_WARNING );
+			return false;
+		}
+
+		/* check for existing server list, otherwise we cannot add backends */
+		if ( empty ( $this->options['servers'] ) && ! $this->alive ) {
+			$this->log (  __translate__("servers list is empty, init failed", $this->plugin_constant ), LOG_WARNING );
+			return false;
+		}
+
+		/* check is there's no backend connection yet */
+		if ( $this->connection === NULL )
+			$this->connection = new Redis();
+
+		/* check if initialization was success or not */
+		if ( $this->connection === NULL ) {
+			$this->log (  __translate__( 'error initializing Redis extension, exiting', $this->plugin_constant ) );
+			return false;
+		}
+
+		//$this->connection->setOption(Redis::OPT_PREFIX, $this->plugin_constant );
+
+		/* adding server *
+		foreach ( $this->options['servers'] as $server_id => $server ) {
+			/* in case of unix socket *
+			if ( $server['port'] === 0 ) {
+				try {
+					$this->status[$server_id] = $this->connection->connect ( $server['host'] );
+				} catch ( RedisException $e ) {
+					$this->log ( sprintf( __translate__( 'adding %s to the Redis pool failed, error: %s', $this->plugin_constant ),  $server['host'], $e ) );
+				}
+			}
+			else {
+				try {
+					$this->status[$server_id] = $this->connection->connect ( $server['host'] , $server['port'] );
+				} catch ( RedisException $e ) {
+					$this->log ( sprintf( __translate__( 'adding %s:%s to the Redis pool failed, error: %s', $this->plugin_constant ),  $server['host'] , $server['port'], $e ) );
+				}
+			}
+
+
+			$this->log ( sprintf( __translate__( 'server #%s added', $this->plugin_constant ),  $server_id ) );
+		}*/
+
+		/* adding server */
+		$key = array_unshift ( array_keys ( $this->options['servers'] ));
+		$server = array_unshift( $this->options['servers'] );
+
+		try {
+			if ( $server['port'] === 0 )
+				$this->status[$key] = $this->connection->connect ( $server['host'] );
+			else
+				$this->status[$key] = $this->connection->connect ( $server['host'], $server['port'] );
+		} catch ( RedisException $e ) {
+			$this->log ( sprintf( __translate__( 'adding %s to the Redis pool failed, error: %s', $this->plugin_constant ),  $server['host'], $e ) );
+		}
+
+		$this->log ( sprintf( __translate__( 'server #%s added', $this->plugin_constant ),  $server_id ) );
+
+		if ( !empty( $this->options['authpass'])) {
+			$auth = $this->connection->auth( $this->options['authpass'] );
+			if ( $auth == false ) {
+				$this->log (  __translate__( 'Redis authentication failed, exiting', $this->plugin_constant ), LOG_WARNING );
+				return false;
+			}
+		}
+
+		/* backend is now alive */
+		$this->alive = true;
+		$this->redis_status();
+	}
+
+	/**
+	 * check current backend alive status for Memcached
+	 *
+	 */
+	private function redis_status () {
+		/* server status will be calculated by getting server stats */
+		$this->log (  __translate__("checking server statuses", $this->plugin_constant ));
+
+		/* get servers statistic from connection */
+		try {
+			$this->connection->ping();
+		} catch ( RedisException $e ) {
+			$this->log ( sprintf( __translate__( 'Redis status check failed, error: %s', $this->plugin_constant ),  $e ) );
+		}
+
+		$this->log ( sprintf( __translate__( 'Redis is up', $this->plugin_constant ),  $server_id ) );
+	}
+
+	/**
+	 * get function for Memcached backend
+	 *
+	 * @param string $key Key to get values for
+	 *
+	*/
+	private function redis_get ( &$key ) {
+		return $this->connection->get($key);
+	}
+
+	/**
+	 * Set function for Memcached backend
+	 *
+	 * @param string $key Key to set with
+	 * @param mixed $data Data to set
+	 *
+	 */
+	private function redis_set ( &$key, &$data, &$expire ) {
+		$result = $this->connection->set ( $key, $data , Array('nx', 'ex' => $expire) );
+		return $result;
+	}
+
+	/**
+	 *
+	 * Flush memcached entries
+	 */
+	private function redis_flush ( ) {
+		return $this->connection->flushDB();
+	}
+
+
+	/**
+	 * Removes entry from Memcached or flushes Memcached storage
+	 *
+	 * @param mixed $keys String / array of string of keys to delete entries with
+	*/
+	private function redis_clear ( &$keys ) {
+		/* make an array if only one string is present, easier processing */
+		if ( !is_array ( $keys ) )
+			$keys = array ( $keys => true );
+
+		$kresults = $this->connection->delete( $keys );
+
+		foreach ( $kresults as $key => $value ) {
+			$this->log ( sprintf( __translate__( 'entry deleted: %s', $this->plugin_constant ),  $value ) );
+		}
+	}
+
+	/*********************** END REDIS FUNCTIONS ***********************/
+
 
 }
 
