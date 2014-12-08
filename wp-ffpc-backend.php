@@ -728,14 +728,14 @@ class WP_FFPC_Backend {
 	private function memcached_status () {
 		/* server status will be calculated by getting server stats */
 		$this->log (  __translate__("checking server statuses", $this->plugin_constant ));
-		/* get servers statistic from connection */
-		$report =  $this->connection->getStats();
+		/* get server list from connection */
+		$servers =  $this->connection->getServerList();
 
-		foreach ( $report as $server_id => $details ) {
+                foreach ( $servers as $server ) {
+			$server_id = $server['host'] . self::port_separator . $server['port'];
 			/* reset server status to offline */
 			$this->status[$server_id] = 0;
-			/* if server uptime is not empty, it's most probably up & running */
-			if ( !empty($details['uptime']) ) {
+                        if ($this->connection->set($this->plugin_constant, time())) {
 				$this->log ( sprintf( __translate__( '%s server is up & running', $this->plugin_constant ),  $server_id ) );
 				$this->status[$server_id] = 1;
 			}
