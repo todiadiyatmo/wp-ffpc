@@ -176,8 +176,8 @@ class WP_FFPC extends PluginAbstract {
 		/* initiate backend */
 		$this->backend = new WP_FFPC_Backend ( $this->options );
 
-		/* get all available post types */
-		$post_types = get_post_types( );
+		/* get all available post types *
+		$post_types = get_post_types( );*/
 
 		/* cache invalidation hooks */
 		add_action(  'transition_post_status',  array( &$this->backend , 'clear_ng' ), 10, 3 );
@@ -563,6 +563,14 @@ class WP_FFPC extends PluginAbstract {
 			<legend><?php _e( 'Debug & in-depth settings', $this->plugin_constant ); ?></legend>
 			<dl>
 				<dt>
+					<label for="pingback_header"><?php _e('Enable X-Pingback header preservation', $this->plugin_constant); ?></label>
+				</dt>
+				<dd>
+					<input type="checkbox" name="pingback_header" id="pingback_header" value="1" <?php checked($this->options['pingback_header'],true); ?> />
+					<span class="description"><?php _e('Preserve X-Pingback URL in response header.', $this->plugin_constant); ?></span>
+				</dd>
+
+				<dt>
 					<label for="log"><?php _e("Enable logging", $this->plugin_constant); ?></label>
 				</dt>
 				<dd>
@@ -653,12 +661,6 @@ class WP_FFPC extends PluginAbstract {
 				</dd>
 
 				<dt>
-
-				</dt>
-				<dd>
-				</dd>
-
-				<dt>
 					<label for="nocache_url"><?php _e("Don't cache following URL paths - use with caution!", $this->plugin_constant); ?></label>
 				</dt>
 				<dd>
@@ -669,6 +671,7 @@ class WP_FFPC extends PluginAbstract {
 					?></textarea>
 					<span class="description"><?php _e('Regular expressions use you must! e.g. <em>pattern1|pattern2|etc</em>', $this->plugin_constant); ?></span>
 				</dd>
+
 			</dl>
 			</fieldset>
 
@@ -1128,7 +1131,8 @@ class WP_FFPC extends PluginAbstract {
 		if ( $this->network ) {
 			/* list all blogs */
 			global $wpdb;
-			$blog_list = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM wp_blogs ORDER BY blog_id", '' ) );
+			$pfix = empty ( $wpdb->base_prefix ) ? 'wp' : $wpdb->base_prefix;
+			$blog_list = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM ". $pfix ."_blogs ORDER BY blog_id", '' ) );
 
 			foreach ($blog_list as $blog) {
 				if ( $blog->archived != 1 && $blog->spam != 1 && $blog->deleted != 1) {
@@ -1190,14 +1194,16 @@ class WP_FFPC extends PluginAbstract {
 				case 'page':
 					$permalink = get_page_link( $post->ID );
 					break;
-				case 'post':
+				/*
+				 * case 'post':
 					$permalink = get_permalink( $post->ID );
 					break;
+				*/
 				case 'attachment':
 					$permalink = get_attachment_link( $post->ID );
 					break;
 				default:
-					$permalink = get_post_permalink( $post->ID );
+					$permalink = get_permalink( $post->ID );
 				break;
 			}
 

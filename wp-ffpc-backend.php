@@ -254,7 +254,7 @@ class WP_FFPC_Backend {
 			$permalink = get_permalink( $post_id );
 
 			/* no path, don't do anything */
-			if ( empty( $permalink ) ) {
+			if ( empty( $permalink ) && $permalink != false ) {
 				$this->log ( sprintf( __translate__( 'unable to determine path from Post Permalink, post ID: %s', $this->plugin_constant ),  $post_id ), LOG_WARNING );
 				return false;
 			}

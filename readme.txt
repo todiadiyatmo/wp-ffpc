@@ -4,7 +4,7 @@ Donate link: https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_i
 Tags: cache, page cache, full page cache, nginx, memcached, apc, speed
 Requires at least: 3.0
 Tested up to: 4.0
-Stable tag: 1.7.0
+Stable tag: 1.7.1
 License: GPLv3
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
 
@@ -47,8 +47,12 @@ Many thanks for donations, contributors, supporters, testers & bug reporters:
 * [Dave Clark](https://github.com/dkcwd "Dave Clark")
 * Miguel Clara
 * [plescheff](https://github.com/plescheff)
+* Firas Dib
 * [CotswoldPhoto](http://wordpress.org/support/profile/cotswoldphoto)
 * [tamagokun](https://github.com/tamagokun)
+* Many Ayromlou
+* mailgarant.nl
+* Christian Rößner
 
 == Installation ==
 
@@ -110,6 +114,22 @@ Version numbering logic:
 * every .B version indicates new features.
 * every ..C indicates bugfixes for A.B version.
 
+= 1.7.1 =
+*2014-12-04*
+
+What's fixed:
+
+* [Unable to determine path from Post Permalink](https://wordpress.org/support/topic/unable-to-determine-path-from-post-permalink) noise fixed
+* potential Multisite precache bug fixed ( database prefixes were not set according to original prefix )
+
+What's new:
+
+* added permanent cache exception of localhost
+
+What's changed:
+
+* pingback header preservation is now off by default and can manually be turned on
+
 = 1.7.0 =
 *2014-09-19*
 
@@ -122,10 +142,6 @@ What's changed:
 * **dropped Xcache support**: the reasons behind this is the outstandingly terrible documentation of Xcache
 * **dropped persistent memcache mode**: no one was using it and even if the were only caused trouble
 * **removed '/wp-' hardcoded cache exception**; this is now the default in the regex exceptions field as ^/wp-; please add this manually in case you've already been using the regex field
-
-What's on it's way:
-
-* brace yourselves, redis support is coming
 
 = 1.6.4 =
 *2014-09-12*
