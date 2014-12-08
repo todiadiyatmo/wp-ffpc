@@ -29,6 +29,7 @@ include_once ( 'wp-ffpc-class.php' );
 
 $wp_ffpc_defaults = array (
 	'hosts'=>'127.0.0.1:11211',
+	'memcached_binary' => false,
 	'authpass'=>'',
 	'authuser'=>'',
 	'expire'=>300,
