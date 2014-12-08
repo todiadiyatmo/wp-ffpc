@@ -1,10 +1,10 @@
 === WP-FFPC ===
-Contributors: cadeyrn
+Contributors: cadeyrn, ameir, haroldkyle, plescheff, dkcwd, IgorCode
 Donate link: https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=XU3DG7LLA76WC
 Tags: cache, page cache, full page cache, nginx, memcached, apc, speed
 Requires at least: 3.0
 Tested up to: 4.0
-Stable tag: 1.7.1
+Stable tag: 1.7.2
 License: GPLv3
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
 
@@ -44,7 +44,7 @@ Many thanks for donations, contributors, supporters, testers & bug reporters:
 * [doconeill](http://wordpress.org/support/profile/doconeill)
 * Mark Costlow
 * Jason Miller
-* [Dave Clark](https://github.com/dkcwd "Dave Clark")
+* [Dave Clark](https://github.com/dkcwd)
 * Miguel Clara
 * [plescheff](https://github.com/plescheff)
 * Firas Dib
@@ -53,6 +53,8 @@ Many thanks for donations, contributors, supporters, testers & bug reporters:
 * Many Ayromlou
 * mailgarant.nl
 * Christian Rößner
+* [Ameir Abdeldayem](https://github.com/ameir)
+* Gonzalez Crespo
 
 == Installation ==
 
@@ -113,6 +115,13 @@ Version numbering logic:
 * every A. indicates BIG changes.
 * every .B version indicates new features.
 * every ..C indicates bugfixes for A.B version.
+
+= 1.7.2 =
+*2014-12-08*
+
+What's changed:
+
+* merged pull request for memcached proxy compatibility; memcached binary mode if off by default from now on
 
 = 1.7.1 =
 *2014-12-04*
