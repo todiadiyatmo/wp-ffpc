@@ -246,7 +246,7 @@ class WP_FFPC extends PluginAbstract {
 			{
 				$memcache_protocol = strtolower($memcache_settings['memcache.protocol']['local_value']);
 				if ( $memcache_protocol == 'binary' ) {
-					$this->errors['binary_memcache'] = __('WARNING: Memcache extension is configured to use binary mode. This is very buggy and the plugin will most probably not work correctly. <br />Please consider to change either to ASCII mode or to Memcached extension.', $this->plugin_constant );
+					$this->errors['memcached_binary'] = __('WARNING: Memcache extension is configured to use binary mode. This is very buggy and the plugin will most probably not work correctly. <br />Please consider to change either to ASCII mode or to Memcached extension.', $this->plugin_constant );
 				}
 			}
 		}
@@ -687,6 +687,14 @@ class WP_FFPC extends PluginAbstract {
 					<?php _e('List of backends, with the following syntax: <br />- in case of TCP based connections, list the servers as host1:port1,host2:port2,... . Do not add trailing , and always separate host and port with : .<br />- in2.0.0b1 case using unix sockets with the Memcache driver: unix:// ', $this->plugin_constant); ?></span>
 				</dd>
 
+				<dt>
+					<label for="memcached_binary"><?php _e('Enable memcached binary mode', $this->plugin_constant); ?></label>
+				</dt>
+				<dd>
+					<input type="checkbox" name="memcached_binary" id="memcached_binary" value="1" <?php checked($this->options['memcached_binary'],true); ?> />
+					<span class="description"><?php _e('Some memcached proxies and implementations only support the ASCII protocol.', $this->plugin_constant); ?></span>
+				</dd>
+                                
 				<?php
 				if ( strstr ( $this->options['cache_type'], 'memcached') && extension_loaded ( 'memcached' ) && version_compare( phpversion( 'memcached' ) , '2.0.0', '>=' ) || ( $this->options['cache_type'] == 'redis' ) ) { ?>
 				<?php
