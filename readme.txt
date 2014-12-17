@@ -46,7 +46,7 @@ Many thanks for donations, contributors, supporters, testers & bug reporters:
 * Jason Miller
 * [Dave Clark](https://github.com/dkcwd)
 * Miguel Clara
-* [plescheff](https://github.com/plescheff)
+* [Anton Pelešev](https://github.com/plescheff)
 * Firas Dib
 * [CotswoldPhoto](http://wordpress.org/support/profile/cotswoldphoto)
 * [tamagokun](https://github.com/tamagokun)
