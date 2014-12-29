@@ -252,7 +252,7 @@ class WP_FFPC extends PluginAbstract {
 		}
 
 		foreach ( $this->errors as $e => $msg ) {
-			$this->utils->alert ( $msg, 'error', $this->network );
+			$this->utils->alert ( $msg, LOG_WARNING, $this->network );
 		}
 	}
 
