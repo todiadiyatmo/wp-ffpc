@@ -445,13 +445,12 @@ class WP_FFPC extends PluginAbstract {
 		<form autocomplete="off" method="post" action="#" id="<?php echo $this->plugin_constant ?>-settings" class="plugin-admin">
 
 			<?php wp_nonce_field( $this->plugin_constant ); ?>
+
+			<?php $switcher_tabs = $this->plugin_admin_panel_get_tabs(); ?>
 			<ul class="tabs">
-				<li><a href="#<?php echo $this->plugin_constant ?>-type" class="wp-switch-editor"><?php _e( 'Cache type', $this->plugin_constant ); ?></a></li>
-				<li><a href="#<?php echo $this->plugin_constant ?>-debug" class="wp-switch-editor"><?php _e( 'Debug & in-depth', $this->plugin_constant ); ?></a></li>
-				<li><a href="#<?php echo $this->plugin_constant ?>-exceptions" class="wp-switch-editor"><?php _e( 'Cache exceptions', $this->plugin_constant ); ?></a></li>
-				<li><a href="#<?php echo $this->plugin_constant ?>-servers" class="wp-switch-editor"><?php _e( 'Backend settings', $this->plugin_constant ); ?></a></li>
-				<li><a href="#<?php echo $this->plugin_constant ?>-nginx" class="wp-switch-editor"><?php _e( 'nginx', $this->plugin_constant ); ?></a></li>
-				<li><a href="#<?php echo $this->plugin_constant ?>-precache" class="wp-switch-editor"><?php _e( 'Precache & precache log', $this->plugin_constant ); ?></a></li>
+				<?php foreach($switcher_tabs AS $tab_section => $tab_label): ?>
+				<li><a href="#<?= $this->plugin_constant ?>-<?= $tab_section ?>" class="wp-switch-editor"><?= $tab_label ?></a></li>
+				<?php endforeach; ?>
 			</ul>
 
 			<fieldset id="<?php echo $this->plugin_constant ?>-type">
@@ -785,6 +784,8 @@ class WP_FFPC extends PluginAbstract {
 			<?php } ?>
 			</fieldset>
 
+			<?php do_action('wp_ffpc_admin_panel_tabs_extra_content', $this->plugin_constant); ?>
+
 			<p class="clear">
 				<input class="button-primary" type="submit" name="<?php echo $this->button_save ?>" id="<?php echo $this->button_save ?>" value="<?php _e('Save Changes', $this->plugin_constant ) ?>" />
 			</p>
@@ -842,6 +843,19 @@ class WP_FFPC extends PluginAbstract {
 		</form>
 		</div>
 		<?php
+	}
+
+	private function plugin_admin_panel_get_tabs() {
+		$default_tabs = array(
+			'type' => __( 'Cache type', $this->plugin_constant ),
+			'debug' => __( 'Debug & in-depth', $this->plugin_constant ),
+			'exceptions' => __( 'Cache exceptions', $this->plugin_constant ),
+			'servers' => __( 'Backend settings', $this->plugin_constant ),
+			'nginx' => __( 'nginx', $this->plugin_constant ),
+			'precache' => __( 'Precache & precache log', $this->plugin_constant )
+		);
+
+		return apply_filters('wp_ffpc_admin_panel_tabs', $default_tabs);
 	}
 
 	/**
@@ -1249,6 +1263,10 @@ class WP_FFPC extends PluginAbstract {
 			return false;
 		else
 			$this->utils->log ( $this->plugin_constant, $message, $log_level );
+	}
+
+	public function getBackend() {
+		return $this->backend;
 	}
 
 }
