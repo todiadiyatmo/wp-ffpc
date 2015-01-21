@@ -971,7 +971,6 @@ class WP_FFPC extends PluginAbstract {
 		$string[] = self::global_config_var . ' = ' . var_export ( $this->global_config, true ) . ';' ;
 		//$string[] = "include_once ('" . $this->acache_backend . "');";
 		$string[] = "include_once ('" . $this->acache_worker . "');";
-		$string[] = "?>";
 
 		/* write the file and start caching from this point */
 		return file_put_contents( $this->acache, join( "\n" , $string ) );
