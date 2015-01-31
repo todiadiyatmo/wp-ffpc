@@ -4,7 +4,7 @@ Donate link: https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_i
 Tags: cache, page cache, full page cache, nginx, memcached, apc, speed
 Requires at least: 3.0
 Tested up to: 4.1
-Stable tag: 1.7.7
+Stable tag: 1.7.9
 License: GPLv3
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
 
@@ -124,6 +124,22 @@ Version numbering logic:
 * every A. indicates BIG changes.
 * every .B version indicates new features.
 * every ..C indicates bugfixes for A.B version.
+
+= 1.7.9 =
+*2015-01-30*
+
+What's new:
+
+* added auto-upgrade for advanced-cache.php on plugin upgrade
+
+
+= 1.7.8 =
+*2015-01-30*
+
+What's new:
+
+* merged pull request for [wp-ffpc-purge](https://github.com/zeroturnaround/wp-ffpc-purge)
+
 
 = 1.7.7 =
 *2015-01-14*

@@ -176,20 +176,11 @@ class WP_FFPC extends PluginAbstract {
 		/* initiate backend */
 		$this->backend = new WP_FFPC_Backend ( $this->options );
 
-		/* get all available post types *
-		$post_types = get_post_types( );*/
+		/* re-save settings after update */
+		add_action( 'upgrader_process_complete', array ( &$this->plugin_upgrade ), 10, 2 );
 
 		/* cache invalidation hooks */
 		add_action(  'transition_post_status',  array( &$this->backend , 'clear_ng' ), 10, 3 );
-		/*
-		foreach ( $post_types as $post_type ) {
-			add_action( 'new_to_publish_' .$post_type , array( &$this->backend , 'clear' ), 0 );
-			add_action( 'draft_to_publish' .$post_type , array( &$this->backend , 'clear' ), 0 );
-			add_action( 'pending_to_publish' .$post_type , array( &$this->backend , 'clear' ), 0 );
-			add_action( 'private_to_publish' .$post_type , array( &$this->backend , 'clear' ), 0 );
-			add_action( 'publish_' . $post_type , array( &$this->backend , 'clear' ), 0 );
-		}
-		*/
 
 		/* comments invalidation hooks */
 		if ( $this->options['comments_invalidate'] ) {
@@ -199,7 +190,6 @@ class WP_FFPC extends PluginAbstract {
 			add_action( 'pingback_post', array( &$this->backend , 'clear' ), 0 );
 			add_action( 'trackback_post', array( &$this->backend , 'clear' ), 0 );
 			add_action( 'wp_insert_comment', array( &$this->backend , 'clear' ), 0 );
-			add_action( '', array( &$this->backend , 'clear' ), 0 );
 		}
 
 		/* invalidation on some other ocasions as well */
@@ -211,28 +201,30 @@ class WP_FFPC extends PluginAbstract {
 		if ( WP_CACHE )
 			add_filter('redirect_canonical', 'wp_ffpc_redirect_callback', 10, 2);
 
-		/* clean up schedule if needed */
-		if ( !isset( $this->options['precache_schedule'] ) || $this->options['precache_schedule'] == 'null' ) {
-			$this->log ( sprintf ( __( 'clearing scheduled hook %s', $this->plugin_constant ), self::precache_id ) );
-		}
-
 		/* add precache coldrun action */
 		add_action( self::precache_id , array( &$this, 'precache_coldrun' ) );
 
+		/* link on to settings for plugins page */
 		$settings_link = ' &raquo; <a href="' . $this->settings_link . '">' . __( 'WP-FFPC Settings', $this->plugin_constant ) . '</a>';
-		/* check for errors */
+
+		/* check & collect errors */
+		/* look for WP_CACHE */
 		if ( ! WP_CACHE )
 			$this->errors['no_wp_cache'] = __("WP_CACHE is disabled, plugin will not work that way. Please add `define ( 'WP_CACHE', true );` to wp-config.php", $this->plugin_constant ) . $settings_link;
 
+		/* look for global settings array */
 		if ( ! $this->global_saved )
 			$this->errors['no_global_saved'] = __("Plugin settings are not yet saved for the site, please save settings!", $this->plugin_constant) . $settings_link;
 
-		if ( ! file_exists ( $this->acache ) )
-			$this->errors['no_acache_saved'] = __("Advanced cache file is yet to be generated, please save settings!", $this->plugin_constant). $settings_link;
-
+		/* look for writable acache file */
 		if ( file_exists ( $this->acache ) && ! is_writable ( $this->acache ) )
 			$this->errors['no_acache_write'] = __("Advanced cache file is not writeable!<br />Please change the permissions on the file: ", $this->plugin_constant) . $this->acache;
 
+		/* look for acache file */
+		if ( ! file_exists ( $this->acache ) )
+			$this->errors['no_acache_saved'] = __("Advanced cache file is yet to be generated, please save settings!", $this->plugin_constant). $settings_link;
+
+		/* look for extensions that should be available */
 		foreach ( $this->valid_cache_type as $backend => $status ) {
 			if ( $this->options['cache_type'] == $backend && ! $status ) {
 				$this->errors['no_backend'] = sprintf ( __('%s cache backend activated but no PHP %s extension was found.<br />Please either use different backend or activate the module!', $this->plugin_constant), $backend, $backend );
@@ -284,6 +276,18 @@ class WP_FFPC extends PluginAbstract {
 		/* delete site settings */
 		if ( $delete_options ) {
 			$this->plugin_options_delete ();
+		}
+	}
+
+	/**
+	 * once upgrade is finished, deploy advanced cache and save the new settings, just in case
+	 */
+	public function plugin_upgrade ( $upgrader_object, $hook_extra ) {
+		if (is_plugin_active( $this->plugin_constant . DIRECTORY_SEPARATOR . $this->plugin_constant . '.php' )) {
+			$this->update_global_config();
+			$this->plugin_options_save();
+			$this->deploy_advanced_cache();
+			$this->utils->alert ( __('WP-FFPC settings were upgraded; please double check if everything is still working correctly.', $this->plugin_constant ), LOG_NOTICE );
 		}
 	}
 
@@ -563,6 +567,9 @@ class WP_FFPC extends PluginAbstract {
 
 			<fieldset id="<?php echo $this->plugin_constant ?>-debug">
 			<legend><?php _e( 'Debug & in-depth settings', $this->plugin_constant ); ?></legend>
+			<h3><?php _e('Notes', $this->plugin_constant);?></h3>
+			<p><?php _e('The former method of debug logging flag has been removed. In case you need debug log from WP-FFPC please set the <a href="http://codex.wordpress.org/WP_DEBUG">WP_DEBUG</a> constant `true`.<br /> This will enable NOTICE level messages apart from the WARNING level ones which are always displayed.', $this->plugin_constant); ?></p>
+
 			<dl>
 				<dt>
 					<label for="pingback_header"><?php _e('Enable X-Pingback header preservation', $this->plugin_constant); ?></label>
@@ -570,14 +577,6 @@ class WP_FFPC extends PluginAbstract {
 				<dd>
 					<input type="checkbox" name="pingback_header" id="pingback_header" value="1" <?php checked($this->options['pingback_header'],true); ?> />
 					<span class="description"><?php _e('Preserve X-Pingback URL in response header.', $this->plugin_constant); ?></span>
-				</dd>
-
-				<dt>
-					<label for="log"><?php _e("Enable logging", $this->plugin_constant); ?></label>
-				</dt>
-				<dd>
-					<input type="checkbox" name="log" id="log" value="1" <?php checked($this->options['log'],true); ?> />
-					<span class="description"><?php _e('Enables log messages; if <a href="http://codex.wordpress.org/WP_DEBUG">WP_DEBUG</a> is enabled, notices and info level is displayed as well, otherwie only ERRORS are logged.', $this->plugin_constant); ?></span>
 				</dd>
 
 				<dt>
@@ -597,6 +596,7 @@ class WP_FFPC extends PluginAbstract {
 				</dd>
 
 			</dl>
+
 			</fieldset>
 
 			<fieldset id="<?php echo $this->plugin_constant ?>-exceptions">
@@ -869,11 +869,11 @@ class WP_FFPC extends PluginAbstract {
 		if ( $this->options['precache_schedule'] != 'null' ) {
 			/* clear all other schedules before adding a new in order to replace */
 			wp_clear_scheduled_hook ( self::precache_id );
-			$this->log ( __( 'Scheduling WP-CRON event', $this->plugin_constant ) );
+			$this->utils->log ( $this->plugin_constant, __( 'Scheduling WP-CRON event', $this->plugin_constant ) );
 			$this->scheduled = wp_schedule_event( time(), $this->options['precache_schedule'] , self::precache_id );
 		}
 		elseif ( ( !isset($this->options['precache_schedule']) || $this->options['precache_schedule'] == 'null' ) && !empty( $schedule ) ) {
-			$this->log ( __('Clearing WP-CRON scheduled hook ' , $this->plugin_constant ) );
+			$this->utils->log ( $this->plugin_constant, __('Clearing WP-CRON scheduled hook ' , $this->plugin_constant ) );
 			wp_clear_scheduled_hook ( self::precache_id );
 		}
 
@@ -1251,17 +1251,6 @@ class WP_FFPC extends PluginAbstract {
 		if ( $site !== false ) {
 			switch_to_blog( $current_blog );
 		}
-	}
-
-	/**
-	 * log wrapper to include options
-	 *
-	 */
-	public function log ( $message, $log_level = LOG_NOTICE ) {
-		if ( !isset ( $this->options['log'] ) || $this->options['log'] != 1 )
-			return false;
-		else
-			$this->utils->log ( $this->plugin_constant, $message, $log_level );
 	}
 
 	public function getBackend() {
