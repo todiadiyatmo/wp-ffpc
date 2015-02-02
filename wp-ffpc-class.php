@@ -119,7 +119,7 @@ class WP_FFPC extends PluginAbstract {
 		else {
 			$sitedomain = parse_url( get_option('siteurl') , PHP_URL_HOST);
 			if ( $_SERVER['HTTP_HOST'] != $sitedomain ) {
-				$this->errors['domain_mismatch'] = sprintf( __("Domain mismatch: the site domain configuration (%s) does not match the HTTP_HOST (%s) variable in PHP. Please update the settings to match the two, otherwise the plugin may not work as expected.", $this->plugin_constant ), $sitedomain, $_SERVER['HTTP_HOST'] );
+				$this->errors['domain_mismatch'] = sprintf( __("Domain mismatch: the site domain configuration (%s) does not match the HTTP_HOST (%s) variable in PHP. Please fix the incorrect one, otherwise the plugin may not work as expected.", $this->plugin_constant ), $sitedomain, $_SERVER['HTTP_HOST'] );
 			}
 
 			$this->global_config_key = $_SERVER['HTTP_HOST'];
@@ -217,19 +217,19 @@ class WP_FFPC extends PluginAbstract {
 		/* check & collect errors */
 		/* look for WP_CACHE */
 		if ( ! WP_CACHE )
-			$this->errors['no_wp_cache'] = __("WP_CACHE is disabled, plugin will not work that way. Please add `define ( 'WP_CACHE', true );` to wp-config.php", $this->plugin_constant ) . $settings_link;
+			$this->errors['no_wp_cache'] = __("WP_CACHE is disabled. Without that, cache plugins, like this, will not work. Please add `define ( 'WP_CACHE', true );` to the beginning of wp-config.php.", $this->plugin_constant );
 
 		/* look for global settings array */
 		if ( ! $this->global_saved )
-			$this->errors['no_global_saved'] = __("Plugin settings are not yet saved for the site, please save settings!", $this->plugin_constant) . $settings_link;
+			$this->errors['no_global_saved'] = sprintf( __('This site was reached as %s ( according to PHP HTTP_HOST ) and there are no settings present for this domain in the WP-FFPC configuration yet. Please save the <a href="%s">WP-FFPC settings</a> for the domain or fix the webserver configuration!', $this->plugin_constant), $_SERVER['HTTP_HOST'], $settings_link);
 
 		/* look for writable acache file */
 		if ( file_exists ( $this->acache ) && ! is_writable ( $this->acache ) )
-			$this->errors['no_acache_write'] = __("Advanced cache file is not writeable!<br />Please change the permissions on the file: ", $this->plugin_constant) . $this->acache;
+			$this->errors['no_acache_write'] = sprintf(__('Advanced cache file (%s) is not writeable!<br />Please change the permissions on the file.', $this->plugin_constant), $this->acache);
 
 		/* look for acache file */
 		if ( ! file_exists ( $this->acache ) )
-			$this->errors['no_acache_saved'] = __("Advanced cache file is yet to be generated, please save settings!", $this->plugin_constant). $settings_link;
+			$this->errors['no_acache_saved'] = sprintf (__('Advanced cache file is yet to be generated, please save <a href="%s">WP-FFPC settings!</a>', $this->plugin_constant), $settings_link );
 
 		/* look for extensions that should be available */
 		foreach ( $this->valid_cache_type as $backend => $status ) {
