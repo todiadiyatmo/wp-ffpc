@@ -113,10 +113,17 @@ class WP_FFPC extends PluginAbstract {
 		}
 
 		/* set global config key; here, because it's needed for migration */
-		if ( $this->network )
+		if ( $this->network ) {
 			$this->global_config_key = 'network';
-		else
+		}
+		else {
+			$sitedomain = parse_url( get_option('siteurl') , PHP_URL_HOST);
+			if ( $_SERVER['HTTP_HOST'] != $sitedomain ) {
+				$this->errors['domain_mismatch'] = sprintf( __("Domain mismatch: the site domain configuration (%s) does not match the HTTP_HOST (%s) variable in PHP. Please update the settings to match the two, otherwise the plugin may not work as expected.", $this->plugin_constant ), $sitedomain, $_SERVER['HTTP_HOST'] );
+			}
+
 			$this->global_config_key = $_SERVER['HTTP_HOST'];
+		}
 
 		/* cache type possible values array */
 		$this->select_cache_type = array (

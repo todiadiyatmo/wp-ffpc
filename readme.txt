@@ -126,10 +126,11 @@ Version numbering logic:
 * every ..C indicates bugfixes for A.B version.
 
 = 1.7.9 =
-*2015-01-30*
+*2015-02-02*
 
 What's new:
 
+* detailed log messages for other log message clarification
 * added auto-upgrade for advanced-cache.php on plugin upgrade
 
 
