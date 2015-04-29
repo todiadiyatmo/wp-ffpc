@@ -3,7 +3,7 @@
 if ( ! class_exists( 'WP_FFPC' ) ) :
 
 /* get the plugin abstract class*/
-include_once ( dirname(__FILE__) . '/wp-common/plugin_abstract.php' );
+include_once ( dirname(__FILE__) . '/wp-ffpc-abstract.php' );
 /* get the common functions class*/
 include_once ( dirname(__FILE__) .'/wp-ffpc-backend.php' );
 
@@ -22,7 +22,7 @@ include_once ( dirname(__FILE__) .'/wp-ffpc-backend.php' );
  * @var array $shell_possibilities	List of possible precache worker callers
  [TODO] finish list of vars
  */
-class WP_FFPC extends PluginAbstract {
+class WP_FFPC extends WP_FFPC_ABSTRACT {
 	const host_separator  = ',';
 	const port_separator  = ':';
 	const donation_id_key = 'hosted_button_id=';
@@ -111,6 +111,9 @@ class WP_FFPC extends PluginAbstract {
 				break;
 			}
 		}
+
+		if (!isset($_SERVER['HTTP_HOST']))
+			$_SERVER['HTTP_HOST'] = '127.0.0.1';
 
 		/* set global config key; here, because it's needed for migration */
 		if ( $this->network ) {
@@ -221,7 +224,7 @@ class WP_FFPC extends PluginAbstract {
 
 		/* look for global settings array */
 		if ( ! $this->global_saved )
-			$this->errors['no_global_saved'] = sprintf( __('This site was reached as %s ( according to PHP HTTP_HOST ) and there are no settings present for this domain in the WP-FFPC configuration yet. Please save the <a href="%s">WP-FFPC settings</a> for the domain or fix the webserver configuration!', $this->plugin_constant), $_SERVER['HTTP_HOST'], $settings_link);
+			$this->errors['no_global_saved'] = sprintf( __('This site was reached as %s ( according to PHP HTTP_HOST ) and there are no settings present for this domain in the WP-FFPC configuration yet. Please save the <a href="%s">WP-FFPC settings</a> for the domain or fix the webserver configuration!', $this->plugin_constant), $_SERVER['HTTP_HOST'], $this->settings_link);
 
 		/* look for writable acache file */
 		if ( file_exists ( $this->acache ) && ! is_writable ( $this->acache ) )
@@ -229,7 +232,7 @@ class WP_FFPC extends PluginAbstract {
 
 		/* look for acache file */
 		if ( ! file_exists ( $this->acache ) )
-			$this->errors['no_acache_saved'] = sprintf (__('Advanced cache file is yet to be generated, please save <a href="%s">WP-FFPC settings!</a>', $this->plugin_constant), $settings_link );
+			$this->errors['no_acache_saved'] = sprintf (__('Advanced cache file is yet to be generated, please save <a href="%s">WP-FFPC settings!</a>', $this->plugin_constant), $this->settings_link );
 
 		/* look for extensions that should be available */
 		foreach ( $this->valid_cache_type as $backend => $status ) {
@@ -252,8 +255,10 @@ class WP_FFPC extends PluginAbstract {
 
 		$filtered_errors = apply_filters('wp_ffpc_post_init_errors_array', $this->errors);
 		if ($filtered_errors) {
-			foreach ( $this->errors as $e => $msg ) {
-				$this->utils->alert ( $msg, LOG_WARNING, $this->network );
+			if ( php_sapi_name() != "cli" ) {
+				foreach ( $this->errors as $e => $msg ) {
+					static::alert ( $msg, LOG_WARNING, $this->network );
+				}
 			}
 		}
 	}
@@ -294,7 +299,7 @@ class WP_FFPC extends PluginAbstract {
 			$this->update_global_config();
 			$this->plugin_options_save();
 			$this->deploy_advanced_cache();
-			$this->utils->alert ( __('WP-FFPC settings were upgraded; please double check if everything is still working correctly.', $this->plugin_constant ), LOG_NOTICE );
+			static::alert ( __('WP-FFPC settings were upgraded; please double check if everything is still working correctly.', $this->plugin_constant ), LOG_NOTICE );
 		}
 	}
 
@@ -306,9 +311,9 @@ class WP_FFPC extends PluginAbstract {
 		/* save parameter updates, if there are any */
 		if ( isset( $_POST[ $this->button_flush ] ) && check_admin_referer ( $this->plugin_constant ) ) {
 			/* remove precache log entry */
-			$this->utils->_delete_option( self::precache_log  );
+			static::_delete_option( self::precache_log  );
 			/* remove precache timestamp entry */
-			$this->utils->_delete_option( self::precache_timestamp );
+			static::_delete_option( self::precache_timestamp );
 
 			/* remove precache logfile */
 			if ( @file_exists ( $this->precache_logfile ) ) {
@@ -751,8 +756,8 @@ class WP_FFPC extends PluginAbstract {
 
 				<?php
 
-				$gentime = $this->utils->_get_option( self::precache_timestamp, $this->network );
-				$log = $this->utils->_get_option( self::precache_log, $this->network );
+				$gentime = static::_get_option( self::precache_timestamp, $this->network );
+				$log = static::_get_option( self::precache_log, $this->network );
 
 				if ( @file_exists ( $this->precache_logfile ) ) {
 					$logtime = filemtime ( $this->precache_logfile );
@@ -760,8 +765,8 @@ class WP_FFPC extends PluginAbstract {
 					/* update precache log in DB if needed */
 					if ( $logtime > $gentime ) {
 						$log = file ( $this->precache_logfile );
-						$this->utils->_update_option( self::precache_log , $log, $this->network );
-						$this->utils->_update_option( self::precache_timestamp , $logtime, $this->network );
+						static::_update_option( self::precache_log , $log, $this->network );
+						static::_update_option( self::precache_timestamp , $logtime, $this->network );
 					}
 
 				}
@@ -876,11 +881,11 @@ class WP_FFPC extends PluginAbstract {
 		if ( $this->options['precache_schedule'] != 'null' ) {
 			/* clear all other schedules before adding a new in order to replace */
 			wp_clear_scheduled_hook ( self::precache_id );
-			$this->utils->log ( $this->plugin_constant, __( 'Scheduling WP-CRON event', $this->plugin_constant ) );
+			static::debug ( $this->plugin_constant, __( 'Scheduling WP-CRON event', $this->plugin_constant ) );
 			$this->scheduled = wp_schedule_event( time(), $this->options['precache_schedule'] , self::precache_id );
 		}
 		elseif ( ( !isset($this->options['precache_schedule']) || $this->options['precache_schedule'] == 'null' ) && !empty( $schedule ) ) {
-			$this->utils->log ( $this->plugin_constant, __('Clearing WP-CRON scheduled hook ' , $this->plugin_constant ) );
+			static::debug ( $this->plugin_constant, __('Clearing WP-CRON scheduled hook ' , $this->plugin_constant ) );
 			wp_clear_scheduled_hook ( self::precache_id );
 		}
 
@@ -1162,8 +1167,8 @@ class WP_FFPC extends PluginAbstract {
 		if ( $this->network ) {
 			/* list all blogs */
 			global $wpdb;
-			$pfix = empty ( $wpdb->base_prefix ) ? 'wp' : $wpdb->base_prefix;
-			$blog_list = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM ". $pfix ."_blogs ORDER BY blog_id", '' ) );
+			$pfix = empty ( $wpdb->base_prefix ) ? 'wp_' : $wpdb->base_prefix;
+			$blog_list = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM ". $pfix ."blogs ORDER BY blog_id", '' ) );
 
 			foreach ($blog_list as $blog) {
 				if ( $blog->archived != 1 && $blog->spam != 1 && $blog->deleted != 1) {
@@ -1239,7 +1244,7 @@ class WP_FFPC extends PluginAbstract {
 			}
 
 			/* in case the bloglinks are relative links add the base url, site specific */
-			$baseurl = empty( $url ) ? $this->utils->_site_url() : $url;
+			$baseurl = empty( $url ) ? static::_site_url() : $url;
 			if ( !strstr( $permalink, $baseurl ) ) {
 				$permalink = $baseurl . $permalink;
 			}

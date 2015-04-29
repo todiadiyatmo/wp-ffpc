@@ -126,9 +126,11 @@ class WP_FFPC_Backend {
 	public function key ( $prefix, $customUrimap = null ) {
 		$urimap = $customUrimap ?: $this->urimap;
 
+		$key_base = self::map_urimap($urimap, $this->options['key']);
 		/* data is string only with content, meta is not used in nginx */
-		$key = $prefix . self::map_urimap($urimap, $this->options['key']);
+		$key = sha1 ($prefix . $key_base );
 		$this->log ( sprintf( __translate__( 'original key configuration: %s', $this->plugin_constant ),  $this->options['key'] ) );
+		$this->log ( sprintf( __translate__( 'setting key for: %s', $this->plugin_constant ),  $key_base ) );
 		$this->log ( sprintf( __translate__( 'setting key to: %s', $this->plugin_constant ),  $key ) );
 		return $key;
 	}
@@ -142,7 +144,6 @@ class WP_FFPC_Backend {
 	 * @return mixed False when entry not found or entry value on success
 	 */
 	public function get ( &$key ) {
-
 		/* look for backend aliveness, exit on inactive backend */
 		if ( ! $this->is_alive() )
 			return false;
@@ -169,7 +170,6 @@ class WP_FFPC_Backend {
 	 * @return mixed $result status of set function
 	 */
 	public function set ( &$key, &$data, $expire = false ) {
-
 		/* look for backend aliveness, exit on inactive backend */
 		if ( ! $this->is_alive() )
 			return false;
@@ -480,11 +480,22 @@ class WP_FFPC_Backend {
 	 * @var mixed $message Message to log
 	 * @var int $log_level Log level
 	 */
-	private function log ( $message, $log_level = LOG_NOTICE ) {
-		if ( !isset ( $this->options['log'] ) || $this->options['log'] != 1 )
-			return false;
-		else
-			$this->utilities->log ( $this->plugin_constant , $message, $log_level );
+	private function log ( $message, $level = LOG_NOTICE ) {
+		if ( @is_array( $message ) || @is_object ( $message ) )
+			$message = json_encode($message);
+
+
+		switch ( $level ) {
+			case LOG_ERR :
+				wp_die( '<h1>Error:</h1>' . '<p>' . $message . '</p>' );
+				exit;
+			default:
+				if ( !defined( 'WP_DEBUG' ) && WP_DEBUG != true  )
+					return;
+				break;
+		}
+
+		error_log(  __CLASS__ . ": " . $message );
 	}
 
 	/*********************** END PUBLIC FUNCTIONS ***********************/
@@ -1084,4 +1095,4 @@ class WP_FFPC_Backend {
 
 }
 
-endif; ?>
+endif;

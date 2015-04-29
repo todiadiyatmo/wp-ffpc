@@ -180,7 +180,7 @@ if ( $wp_ffpc_config['response_header'] )
 	header( 'X-Cache-Engine: WP-FFPC with ' . $wp_ffpc_config['cache_type'] .' via PHP');
 
 /* HTML data */
-echo $wp_ffpc_values['data'];
+echo trim($wp_ffpc_values['data']);
 
 flush();
 die();
@@ -332,8 +332,6 @@ function wp_ffpc_callback( $buffer ) {
 	}
 
 	/* echoes HTML out */
-	return $buffer;
+	return trim($buffer);
 }
 /*** END GENERATING CACHE ENTRY ***/
-
-?>
