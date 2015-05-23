@@ -77,6 +77,7 @@ Many thanks for donations, contributors, supporters, testers & bug reporters:
 * [Alvaro Gonzalez](https://github.com/andor-pierdelacabeza)
 * Meint Post
 * Knut Sparhell
+* Christian Kernbeis
 
 == Installation ==
 
