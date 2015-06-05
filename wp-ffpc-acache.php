@@ -71,6 +71,12 @@ if ( isset($wp_ffpc_config['nocache_url']) && trim($wp_ffpc_config['nocache_url'
 	}
 }
 
+/* canonical redirect storage */
+$wp_ffpc_redirect = null;
+/* fires up the backend storage array with current config */
+include_once ('wp-ffpc-backend.php');
+$wp_ffpc_backend = new WP_FFPC_Backend( $wp_ffpc_config );
+
 /* no cache for for logged in users unless it's set
    identifier cookies are listed in backend as var for easier usage
 */
@@ -83,14 +89,7 @@ if ( !isset($wp_ffpc_config['cache_loggedin']) || $wp_ffpc_config['cache_loggedi
 			}
 		}
 	}
-
 }
-
-/* canonical redirect storage */
-$wp_ffpc_redirect = null;
-/* fires up the backend storage array with current config */
-include_once ('wp-ffpc-backend.php');
-$wp_ffpc_backend = new WP_FFPC_Backend( $wp_ffpc_config );
 
 /* will store time of page generation */
 $wp_ffpc_gentime = 0;
@@ -182,7 +181,7 @@ if ( $wp_ffpc_config['generate_time'] == '1' && stripos($wp_ffpc_values['data'],
 	$mtime = explode ( " ", microtime() );
 	$wp_ffpc_gentime = ( $mtime[1] + $mtime[0] ) - $wp_ffpc_gentime;
 
-	$insertion = "\n<!-- \nWP-FFPC cache output stats\n\tcache engine: ". $wp_ffpc_config['cache_type'] ."\n\tUNIX timestamp: ". time() . "\n\tdate: ". date( 'c' ) . "\n\tfrom server: ". $_SERVER['SERVER_ADDR'] . "\n\t - if you see this, WP-FFPC used the cache to serve the page\n-->\n";
+	$insertion = "\n<!-- WP-FFPC cache output stats\n\tcache engine: ". $wp_ffpc_config['cache_type'] ."\n\tUNIX timestamp: ". time() . "\n\tdate: ". date( 'c' ) . "\n\tfrom server: ". $_SERVER['SERVER_ADDR'] . " -->\n";
 	$index = stripos( $wp_ffpc_values['data'] , '</body>' );
 
 	$wp_ffpc_values['data'] = substr_replace( $wp_ffpc_values['data'], $insertion, $index, 0);
@@ -316,17 +315,17 @@ function wp_ffpc_callback( $buffer ) {
 		$mtime = explode ( " ", microtime() );
 		$wp_ffpc_gentime = ( $mtime[1] + $mtime[0] )- $wp_ffpc_gentime;
 
-		$insertion = "\n<!-- \nWP-FFPC cache generation stats" . "\n\tgeneration time: ". round( $wp_ffpc_gentime, 3 ) ." seconds\n\tgeneraton UNIX timestamp: ". time() . "\n\tgeneraton date: ". date( 'c' ) . "\n\tgenerator server: ". $_SERVER['SERVER_ADDR'] . "\n\t - at this point the cache entry is only created by WP-FFPC but the page is not yet served from the cache\n-->\n";
+		$insertion = "\n<!-- WP-FFPC cache generation stats" . "\n\tgeneration time: ". round( $wp_ffpc_gentime, 3 ) ." seconds\n\tgeneraton UNIX timestamp: ". time() . "\n\tgeneraton date: ". date( 'c' ) . "\n\tgenerator server: ". $_SERVER['SERVER_ADDR'] . " -->\n";
 		$index = stripos( $buffer , '</body>' );
 
-		$buffer = substr_replace( $buffer, $insertion, $index, 0);
+		$to_store = substr_replace( $buffer, $insertion, $index, 0);
 	}
 
 	$prefix_meta = $wp_ffpc_backend->key ( $wp_ffpc_config['prefix_meta'] );
 	$wp_ffpc_backend->set ( $prefix_meta, $meta );
 
 	$prefix_data = $wp_ffpc_backend->key ( $wp_ffpc_config['prefix_data'] );
-	$wp_ffpc_backend->set ( $prefix_data , $buffer );
+	$wp_ffpc_backend->set ( $prefix_data , $to_store );
 
 	if ( !empty( $meta['status'] ) && $meta['status'] == 404 ) {
 		header("HTTP/1.1 404 Not Found");

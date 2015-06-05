@@ -221,7 +221,7 @@ class WP_FFPC extends WP_FFPC_ABSTRACT {
 
 		/* look for global settings array */
 		if ( ! $this->global_saved )
-			$this->errors['no_global_saved'] = sprintf( __('This site was reached as %s ( according to PHP HTTP_HOST ) and there are no settings present for this domain in the WP-FFPC configuration yet. Please save the <a href="%s">WP-FFPC settings</a> for the domain or fix the webserver configuration!', $this->plugin_constant), $_SERVER['HTTP_HOST'], $this->settings_link);
+			$this->errors['no_global_saved'] = sprintf( __('This site was reached as %s ( according to PHP HTTP_HOST ) and there are no settings present for this domain in the WP-FFPC configuration yet. Please save the %s for the domain or fix the webserver configuration!', $this->plugin_constant), $_SERVER['HTTP_HOST'], $settings_link);
 
 		/* look for writable acache file */
 		if ( file_exists ( $this->acache ) && ! is_writable ( $this->acache ) )
@@ -229,7 +229,7 @@ class WP_FFPC extends WP_FFPC_ABSTRACT {
 
 		/* look for acache file */
 		if ( ! file_exists ( $this->acache ) )
-			$this->errors['no_acache_saved'] = sprintf (__('Advanced cache file is yet to be generated, please save <a href="%s">WP-FFPC settings!</a>', $this->plugin_constant), $this->settings_link );
+			$this->errors['no_acache_saved'] = sprintf (__('Advanced cache file is yet to be generated, please save %s', $this->plugin_constant), $settings_link );
 
 		/* look for extensions that should be available */
 		foreach ( $this->valid_cache_type as $backend => $status ) {
@@ -1074,10 +1074,11 @@ class WP_FFPC extends WP_FFPC_ABSTRACT {
 		}
 
 		/* add custom response header if specified in the options */
-		if( $this->options['response_header'] ){
+		if( $this->options['response_header'] && strstr ( $this->options['cache_type'], 'memcached') ) {
 			$response_header =  'add_header X-Cache-Engine "WP-FFPC with ' . $this->options['cache_type'] .' via nginx";';
 			$nginx = str_replace ( 'RESPONSE_HEADER' , $response_header , $nginx );
-		} else{
+		}
+		else {
 			$nginx = str_replace ( 'RESPONSE_HEADER' , '' , $nginx );
 		}
 
