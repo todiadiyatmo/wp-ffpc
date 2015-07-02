@@ -988,12 +988,7 @@ class WP_FFPC extends WP_FFPC_ABSTRACT {
 	 */
 	private function deploy_advanced_cache( ) {
 
-		/* in case advanced-cache.php was already there, remove it */
-		if ( @file_exists( $this->acache ))
-			unlink ($this->acache);
-
-		/* is deletion was unsuccessful, die, we have no rights to do that, fail */
-		if ( @file_exists( $this->acache ))
+		if ( @is_writable( $this->acache ))
 			return false;
 
 		/* if no active site left no need for advanced cache :( */
