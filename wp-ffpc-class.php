@@ -85,7 +85,7 @@ class WP_FFPC extends WP_FFPC_ABSTRACT {
 		/* nginx sample config file */
 		$this->nginx_sample = $this->plugin_dir . $this->plugin_constant . '-nginx-sample.conf';
 		/* backend driver file */
-		$this->acache_backend = $this->plugin_dir . $this->plugin_constant . '-backend.php';
+		$this->acache_backend = $this->plugin_dir . $this->plugin_constant . '-engine.php';
 		/* flush button identifier */
 		$this->button_flush = $this->plugin_constant . '-flush';
 		/* precache button identifier */
@@ -181,7 +181,8 @@ class WP_FFPC extends WP_FFPC_ABSTRACT {
 	public function plugin_post_init () {
 
 		/* initiate backend */
-		$this->backend = new WP_FFPC_Backend ( $this->options );
+		$backend_class = 'WP_FFPC_Backend_' . $this->options['cache_type'];
+		$this->backend = new $backend_class ( $this->options );
 
 		/* re-save settings after update */
 		add_action( 'upgrader_process_complete', array ( &$this->plugin_upgrade ), 10, 2 );
@@ -439,6 +440,7 @@ class WP_FFPC extends WP_FFPC_ABSTRACT {
 
 				/* we need to go through all servers */
 				$servers = $this->backend->status();
+				error_log(__CLASS__ . ':' .json_encode($servers));
 				if ( is_array( $servers ) && !empty ( $servers ) ) {
 					foreach ( $servers as $server_string => $status ) {
 						echo $server_string ." => ";
@@ -705,19 +707,10 @@ class WP_FFPC extends WP_FFPC_ABSTRACT {
 				<dd>
 					<input type="text" name="hosts" id="hosts" value="<?php echo $this->options['hosts']; ?>" />
 					<span class="description">
-					<?php _e('List of backends, with the following syntax: <br />- in case of TCP based connections, list the servers as host1:port1,host2:port2,... . Do not add trailing , and always separate host and port with : .<br />- in2.0.0b1 case using unix sockets with the Memcache driver: unix:// ', $this->plugin_constant); ?></span>
+					<?php _e('List of backends, with the following syntax: <br />- in case of TCP based connections, list the servers as host1:port1,host2:port2,... . Do not add trailing , and always separate host and port with : .<br />- for a unix socket enter: unix://[socket_path]', $this->plugin_constant); ?></span>
 				</dd>
 
-				<dt>
-					<label for="memcached_binary"><?php _e('Enable memcached binary mode', $this->plugin_constant); ?></label>
-				</dt>
-				<dd>
-					<input type="checkbox" name="memcached_binary" id="memcached_binary" value="1" <?php checked($this->options['memcached_binary'],true); ?> />
-					<span class="description"><?php _e('Some memcached proxies and implementations only support the ASCII protocol.', $this->plugin_constant); ?></span>
-				</dd>
-
-				<?php
-				if ( strstr ( $this->options['cache_type'], 'memcached') && extension_loaded ( 'memcached' ) && version_compare( phpversion( 'memcached' ) , '2.0.0', '>=' ) || ( $this->options['cache_type'] == 'redis' ) ) { ?>
+				<h3><?php _e('Authentication ( only for SASL enabled Memcached or Redis')?></h3>
 				<?php
 					if ( ! ini_get('memcached.use_sasl') && ( !empty( $this->options['authuser'] ) || !empty( $this->options['authpass'] ) ) ) { ?>
 						<div class="error"><p><strong><?php _e( 'WARNING: you\'ve entered username and/or password for memcached authentication ( or your browser\'s autocomplete did ) which will not work unless you enable memcached sasl in the PHP settings: add `memcached.use_sasl=1` to php.ini' , $this->plugin_constant ) ?></strong></p></div>
@@ -728,7 +721,7 @@ class WP_FFPC extends WP_FFPC_ABSTRACT {
 				<dd>
 					<input type="text" autocomplete="off" name="authuser" id="authuser" value="<?php echo $this->options['authuser']; ?>" />
 					<span class="description">
-					<?php _e('Username for authentication with memcached backends', $this->plugin_constant); ?></span>
+					<?php _e('Username for authentication with backends', $this->plugin_constant); ?></span>
 				</dd>
 
 				<dt>
@@ -737,9 +730,19 @@ class WP_FFPC extends WP_FFPC_ABSTRACT {
 				<dd>
 					<input type="password" autocomplete="off" name="authpass" id="authpass" value="<?php echo $this->options['authpass']; ?>" />
 					<span class="description">
-					<?php _e('Password for authentication with memcached backends - WARNING, the password will be stored plain-text since it needs to be used!', $this->plugin_constant); ?></span>
+					<?php _e('Password for authentication with for backends - WARNING, the password will be stored in an unsecure format!', $this->plugin_constant); ?></span>
 				</dd>
-				<?php } ?>
+
+				<h3><?php _e('Memcached specific settings')?></h3>
+				<dt>
+					<label for="memcached_binary"><?php _e('Enable memcached binary mode', $this->plugin_constant); ?></label>
+				</dt>
+				<dd>
+					<input type="checkbox" name="memcached_binary" id="memcached_binary" value="1" <?php checked($this->options['memcached_binary'],true); ?> />
+					<span class="description"><?php _e('Some memcached proxies and implementations only support the ASCII protocol.', $this->plugin_constant); ?></span>
+				</dd>
+
+
 			</dl>
 			</fieldset>
 
@@ -988,12 +991,16 @@ class WP_FFPC extends WP_FFPC_ABSTRACT {
 	 */
 	private function deploy_advanced_cache( ) {
 
-		if ( @is_writable( $this->acache ))
+		if ( !is_writable( $this->acache )) {
+			error_log('Generating advanced-cache.php failed: '.$this->acache.' is not writable');
 			return false;
+		}
 
 		/* if no active site left no need for advanced cache :( */
-		if ( empty ( $this->global_config ) )
+		if ( empty ( $this->global_config ) ) {
+			error_log('Generating advanced-cache.php failed: Global config is empty');
 			return false;
+		}
 
 		/* add the required includes and generate the needed code */
 		$string[] = "<?php";
@@ -1003,6 +1010,7 @@ class WP_FFPC extends WP_FFPC_ABSTRACT {
 
 		/* write the file and start caching from this point */
 		return file_put_contents( $this->acache, join( "\n" , $string ) );
+
 	}
 
 	/**

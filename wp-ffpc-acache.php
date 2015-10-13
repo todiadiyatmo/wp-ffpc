@@ -3,6 +3,15 @@
  * advanced cache worker of WordPress plugin WP-FFPC
  */
 
+if ( !function_exists ('__debug__') ) {
+	/* __ only availabe if we're running from the inside of wordpress, not in advanced-cache.php phase */
+	function __debug__ ( $text ) {
+		if ( defined('WP_FFPC__DEBUG_MODE') && WP_FFPC__DEBUG_MODE == true)
+			error_log ( __FILE__ . ': ' . $text );
+	}
+}
+
+
 /* check for WP cache enabled*/
 if ( !WP_CACHE )
 	return false;
@@ -26,12 +35,16 @@ if (!isset($wp_ffpc_config))
 $wp_ffpc_uri = $_SERVER['REQUEST_URI'];
 
 /* no cache for robots.txt */
-if ( stripos($wp_ffpc_uri, 'robots.txt') )
+if ( stripos($wp_ffpc_uri, 'robots.txt') ) {
+	__debug__ ( 'Skippings robots.txt hit');
 	return false;
+}
 
 /* multisite files can be too large for memcached */
-if ( function_exists('is_multisite') && stripos($wp_ffpc_uri, '/files/') && is_multisite() )
+if ( function_exists('is_multisite') && stripos($wp_ffpc_uri, '/files/') && is_multisite() ) {
+	__debug__ ( 'Skippings multisite /files/ hit');
 	return false;
+}
 
 /* check if config is network active: use network config */
 if (!empty ( $wp_ffpc_config['network'] ) )
@@ -44,8 +57,10 @@ else
 	return false;
 
 /* no cache for uri with query strings, things usually go bad that way */
-if ( isset($wp_ffpc_config['nocache_dyn']) && !empty($wp_ffpc_config['nocache_dyn']) && stripos($wp_ffpc_uri, '?') !== false )
+if ( isset($wp_ffpc_config['nocache_dyn']) && !empty($wp_ffpc_config['nocache_dyn']) && stripos($wp_ffpc_uri, '?') !== false ) {
+	__debug__ ( 'Dynamic url cache is disabled ( url with "?" ), skipping');
 	return false;
+}
 
 /* check for cookies that will make us not cache the content, like logged in WordPress cookie */
 if ( isset($wp_ffpc_config['nocache_cookies']) && !empty($wp_ffpc_config['nocache_cookies']) ) {
@@ -56,6 +71,7 @@ if ( isset($wp_ffpc_config['nocache_cookies']) && !empty($wp_ffpc_config['nocach
 			/* check for any matches to user-added cookies to no-cache */
 			foreach ( $nocache_cookies as $nocache_cookie ) {
 				if( strpos( $n, $nocache_cookie ) === 0 ) {
+					__debug__ ( "Cookie exception matched: $n, skipping");
 					return false;
 				}
 			}
@@ -67,6 +83,7 @@ if ( isset($wp_ffpc_config['nocache_cookies']) && !empty($wp_ffpc_config['nocach
 if ( isset($wp_ffpc_config['nocache_url']) && trim($wp_ffpc_config['nocache_url']) ) {
 	$pattern = sprintf('#%s#', trim($wp_ffpc_config['nocache_url']));
 	if ( preg_match($pattern, $wp_ffpc_uri) ) {
+		__debug__ ( "Cache exceptions matched, skipping");
 		return false;
 	}
 }
@@ -75,7 +92,10 @@ if ( isset($wp_ffpc_config['nocache_url']) && trim($wp_ffpc_config['nocache_url'
 $wp_ffpc_redirect = null;
 /* fires up the backend storage array with current config */
 include_once ('wp-ffpc-backend.php');
-$wp_ffpc_backend = new WP_FFPC_Backend( $wp_ffpc_config );
+$backend_class = 'WP_FFPC_Backend_' . $wp_ffpc_config['cache_type'];
+$wp_ffpc_backend = new $backend_class ( $wp_ffpc_config );
+
+//$wp_ffpc_backend = new WP_FFPC_Backend( $wp_ffpc_config );
 
 /* no cache for for logged in users unless it's set
    identifier cookies are listed in backend as var for easier usage
@@ -85,6 +105,7 @@ if ( !isset($wp_ffpc_config['cache_loggedin']) || $wp_ffpc_config['cache_loggedi
 	foreach ($_COOKIE as $n=>$v) {
 		foreach ( $wp_ffpc_backend->cookies as $nocache_cookie ) {
 			if( strpos( $n, $nocache_cookie ) === 0 ) {
+				__debug__ ( "No cache for cookie: $n, skipping");
 				return false;
 			}
 		}
@@ -95,12 +116,16 @@ if ( !isset($wp_ffpc_config['cache_loggedin']) || $wp_ffpc_config['cache_loggedi
 $wp_ffpc_gentime = 0;
 
 /* backend connection failed, no caching :( */
-if ( $wp_ffpc_backend->status() === false )
+if ( $wp_ffpc_backend->status() === false ) {
+	__debug__ ( "Backend offline, skipping");
 	return false;
+}
 
 /* try to get data & meta keys for current page */
 $wp_ffpc_keys = array ( 'meta' => $wp_ffpc_config['prefix_meta'], 'data' => $wp_ffpc_config['prefix_data'] );
 $wp_ffpc_values = array();
+
+__debug__ ( "Trying to fetch entries");
 
 foreach ( $wp_ffpc_keys as $internal => $key ) {
 	$key = $wp_ffpc_backend->key ( $key );
@@ -308,6 +333,8 @@ function wp_ffpc_callback( $buffer ) {
 	/* store pingback url if pingbacks are enabled */
 	if ( get_option ( 'default_ping_status' ) == 'open' )
 		$meta['pingback'] = get_bloginfo('pingback_url');
+
+	$to_store = $buffer;
 
 	/* add generation info is option is set, but only to HTML */
 	if ( $wp_ffpc_config['generate_time'] == '1' && stripos($buffer, '</body>') ) {
