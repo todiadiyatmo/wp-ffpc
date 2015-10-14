@@ -41,7 +41,7 @@ abstract class WP_FFPC_Backend {
 		/* no config, nothing is going to work */
 		if ( empty ( $config ) ) {
 			return false;
-			//die ( __translate__ ( 'WP-FFPC Backend class received empty configuration array, the plugin will not work this way', $this->plugin_constant ) );
+			//die ( __translate__ ( 'WP-FFPC Backend class received empty configuration array, the plugin will not work this way', 'wp-ffpc') );
 		}
 
 		$this->options = $config;
@@ -72,7 +72,7 @@ abstract class WP_FFPC_Backend {
 		$this->set_servers();
 
 		/* info level */
-		$this->log (  __translate__('init starting', $this->plugin_constant ));
+		$this->log (  __translate__('init starting', 'wp-ffpc'));
 
 		/* call backend initiator based on cache type */
 		$init = $this->_init();
@@ -138,9 +138,9 @@ abstract class WP_FFPC_Backend {
 
 		$key = $prefix . $key_base;
 
-		$this->log ( sprintf( __translate__( 'original key configuration: %s', $this->plugin_constant ),  $this->options['key'] ) );
-		$this->log ( sprintf( __translate__( 'setting key for: %s', $this->plugin_constant ),  $key_base ) );
-		$this->log ( sprintf( __translate__( 'setting key to: %s', $this->plugin_constant ),  $key ) );
+		$this->log ( sprintf( __translate__( 'original key configuration: %s', 'wp-ffpc'),  $this->options['key'] ) );
+		$this->log ( sprintf( __translate__( 'setting key for: %s', 'wp-ffpc'),  $key_base ) );
+		$this->log ( sprintf( __translate__( 'setting key to: %s', 'wp-ffpc'),  $key ) );
 		return $key;
 	}
 
@@ -160,12 +160,12 @@ abstract class WP_FFPC_Backend {
 		}
 
 		/* log the current action */
-		$this->log ( sprintf( __translate__( 'GET %s', $this->plugin_constant ),  $key ) );
+		$this->log ( sprintf( __translate__( 'GET %s', 'wp-ffpc'),  $key ) );
 
 		$result = $this->_get( $key );
 
 		if ( $result === false || $result === null )
-			$this->log ( sprintf( __translate__( 'failed to get entry: %s', $this->plugin_constant ),  $key ) );
+			$this->log ( sprintf( __translate__( 'failed to get entry: %s', 'wp-ffpc'),  $key ) );
 
 		return $result;
 	}
@@ -184,7 +184,7 @@ abstract class WP_FFPC_Backend {
 			return false;
 
 		/* log the current action */
-		$this->log ( sprintf( __translate__( 'set %s expiration time: %s', $this->plugin_constant ),  $key, $this->options['expire'] ) );
+		$this->log ( sprintf( __translate__( 'set %s expiration time: %s', 'wp-ffpc'),  $key, $this->options['expire'] ) );
 
 		/* expiration time based is based on type from now on */
 		/* fallback */
@@ -197,13 +197,13 @@ abstract class WP_FFPC_Backend {
 			$expire = (int) $this->options['expire_taxonomy'];
 
 		/* log the current action */
-		$this->log ( sprintf( __translate__( 'SET %s', $this->plugin_constant ),  $key ) );
+		$this->log ( sprintf( __translate__( 'SET %s', 'wp-ffpc'),  $key ) );
 		/* proxy to internal function */
 		$result = $this->_set( $key, $data, $expire );
 
 		/* check result validity */
 		if ( $result === false || $result === null )
-			$this->log ( sprintf( __translate__( 'failed to set entry: %s', $this->plugin_constant ),  $key ), LOG_WARNING );
+			$this->log ( sprintf( __translate__( 'failed to set entry: %s', 'wp-ffpc'),  $key ), LOG_WARNING );
 
 		return $result;
 	}
@@ -232,20 +232,20 @@ abstract class WP_FFPC_Backend {
 
 		/* exit if no post_id is specified */
 		if ( empty ( $post_id ) && $force === false ) {
-			$this->log (  __translate__('not clearing unidentified post ', $this->plugin_constant ), LOG_WARNING );
+			$this->log (  __translate__('not clearing unidentified post ', 'wp-ffpc'), LOG_WARNING );
 			return false;
 		}
 
 		/* if invalidation method is set to full, flush cache */
 		if ( ( $this->options['invalidation_method'] === 0 || $force === true ) ) {
 			/* log action */
-			$this->log (  __translate__('flushing cache', $this->plugin_constant ) );
+			$this->log (  __translate__('flushing cache', 'wp-ffpc') );
 
 			/* proxy to internal function */
 			$internal = $this->_flush();
 
 			if ( $result === false )
-				$this->log (  __translate__('failed to flush cache', $this->plugin_constant ), LOG_WARNING );
+				$this->log (  __translate__('failed to flush cache', 'wp-ffpc'), LOG_WARNING );
 
 			return $result;
 		}
@@ -282,7 +282,7 @@ abstract class WP_FFPC_Backend {
 
 			/* no path, don't do anything */
 			if ( empty( $permalink ) && $permalink != false ) {
-				$this->log ( sprintf( __translate__( 'unable to determine path from Post Permalink, post ID: %s', $this->plugin_constant ),  $post_id ), LOG_WARNING );
+				$this->log ( sprintf( __translate__( 'unable to determine path from Post Permalink, post ID: %s', 'wp-ffpc'),  $post_id ), LOG_WARNING );
 				return false;
 			}
 
@@ -433,7 +433,7 @@ abstract class WP_FFPC_Backend {
 	 */
 	protected function is_alive() {
 		if ( ! $this->alive ) {
-			$this->log (  __translate__("backend is not active, exiting function ", $this->plugin_constant ) . __FUNCTION__, LOG_WARNING );
+			$this->log (  __translate__("backend is not active, exiting function ", 'wp-ffpc') . __FUNCTION__, LOG_WARNING );
 			return false;
 		}
 

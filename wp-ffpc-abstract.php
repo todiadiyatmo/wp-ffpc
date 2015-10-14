@@ -177,7 +177,7 @@ abstract class WP_FFPC_ABSTRACT {
 	public function plugin_admin_init() {
 
 		/* save parameter updates, if there are any */
-		if ( isset( $_POST[ $this->button_save ] ) && check_admin_referer( $this->plugin_constant ) ) {
+		if ( isset( $_POST[ $this->button_save ] ) && check_admin_referer( 'wp-ffpc') ) {
 
 			$this->plugin_options_save();
 			$this->status = 1;
@@ -185,7 +185,7 @@ abstract class WP_FFPC_ABSTRACT {
 		}
 
 		/* delete parameters if requested */
-		if ( isset( $_POST[ $this->button_delete ] ) && check_admin_referer( $this->plugin_constant ) ) {
+		if ( isset( $_POST[ $this->button_delete ] ) && check_admin_referer( 'wp-ffpc') ) {
 			$this->plugin_options_delete();
 			$this->status = 2;
 			header( "Location: ". $this->settings_link . self::slug_delete );
@@ -195,7 +195,7 @@ abstract class WP_FFPC_ABSTRACT {
 		$this->plugin_extend_admin_init();
 
 		/* add submenu to settings pages */
-		add_submenu_page( $this->settings_slug, $this->plugin_name . __translate__( ' options' , $this->plugin_constant ), $this->plugin_name, $this->capability, $this->plugin_settings_page, array ( &$this , 'plugin_admin_panel' ) );
+		add_submenu_page( $this->settings_slug, $this->plugin_name . __translate__( ' options' , 'wp-ffpc'), $this->plugin_name, $this->capability, $this->plugin_settings_page, array ( &$this , 'plugin_admin_panel' ) );
 	}
 
 	/**
@@ -211,7 +211,7 @@ abstract class WP_FFPC_ABSTRACT {
 	 *
 	 */
 	public function plugin_settings_link ( $links ) {
-		$settings_link = '<a href="' . $this->settings_link . '">' . __translate__( 'Settings', $this->plugin_constant ) . '</a>';
+		$settings_link = '<a href="' . $this->settings_link . '">' . __translate__( 'Settings', 'wp-ffpc') . '</a>';
 		array_unshift( $links, $settings_link );
 		return $links;
 	}
@@ -359,7 +359,7 @@ abstract class WP_FFPC_ABSTRACT {
 	 *
 	 */
 	protected function print_default ( $e ) {
-		_e('Default : ', $this->plugin_constant);
+		_e('Default : ', 'wp-ffpc');
 		$select = 'select_' . $e;
 		if ( @is_array ( $this->$select ) ) {
 			$x = $this->$select;
@@ -442,7 +442,7 @@ abstract class WP_FFPC_ABSTRACT {
 		</script>
 
 		<form action="https://www.paypal.com/cgi-bin/webscr" method="post" class="<?php echo $this->plugin_constant ?>-donation">
-			<label for="amount"><?php _e( "This plugin helped your business? I'd appreciate a coffee in return :) Please!", $this->plugin_constant ); ?></label>
+			<label for="amount"><?php _e( "This plugin helped your business? I'd appreciate a coffee in return :) Please!", 'wp-ffpc'); ?></label>
 			<select name="amount" id="amount">
 				<option value="3">3$</option>
 				<option value="5">5$</option>
@@ -457,9 +457,9 @@ abstract class WP_FFPC_ABSTRACT {
 			<input type="hidden" id="tax" name="tax" value="0" />
 			<input type="hidden" id="business" name="business" value="<?php echo $this->donation_business_id ?>" />
 			<input type="hidden" id="bn" name="bn" value="<?php echo $this->donation_business_name ?>" />
-			<input type="hidden" id="item_name" name="item_name" value="<?php _e('Donation for ', $this->plugin_constant ); echo $this->donation_item_name ?>" />
+			<input type="hidden" id="item_name" name="item_name" value="<?php _e('Donation for ', 'wp-ffpc'); echo $this->donation_item_name ?>" />
 			<input type="hidden" id="currency_code" name="currency_code" value="USD" />
-			<input type="submit" name="submit" value="<?php _e('Donate via PayPal', $this->plugin_constant ) ?>" class="button-secondary" />
+			<input type="submit" name="submit" value="<?php _e('Donate via PayPal', 'wp-ffpc') ?>" class="button-secondary" />
 		</form>
 		<?php
 		endif;

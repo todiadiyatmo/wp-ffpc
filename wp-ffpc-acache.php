@@ -83,7 +83,7 @@ if ( isset($wp_ffpc_config['nocache_cookies']) && !empty($wp_ffpc_config['nocach
 if ( isset($wp_ffpc_config['nocache_url']) && trim($wp_ffpc_config['nocache_url']) ) {
 	$pattern = sprintf('#%s#', trim($wp_ffpc_config['nocache_url']));
 	if ( preg_match($pattern, $wp_ffpc_uri) ) {
-		__debug__ ( "Cache exceptions matched, skipping");
+		__debug__ ( "Cache exception based on URL regex pattern matched, skipping");
 		return false;
 	}
 }
@@ -274,6 +274,15 @@ function wp_ffpc_callback( $buffer ) {
 	   We do not cache them, WP needs to get those calls. */
 	if (strlen($buffer) == 0)
 		return '';
+
+	if ( isset($wp_ffpc_config[ 'nocache_comment' ]) && !empty($wp_ffpc_config[ 'nocache_comment' ]) && trim($wp_ffpc_config[ 'nocache_comment' ])) {
+		$pattern = sprintf('#%s#', trim($wp_ffpc_config['nocache_comment']));
+		__debug__ ( sprintf("Testing comment with pattern: %s", $pattern));
+		if ( preg_match($pattern, $buffer) ) {
+			__debug__ ( "Cache exception based on content regex pattern matched, skipping");
+			return $buffer;
+		}
+	}
 
 	if ( is_home() )
 		$meta['type'] = 'home';
