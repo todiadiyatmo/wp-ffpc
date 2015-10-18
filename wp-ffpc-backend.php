@@ -22,7 +22,6 @@ abstract class WP_FFPC_Backend {
 	const host_separator  = ',';
 	const port_separator  = ':';
 
-	protected $plugin_constant = 'wp-ffpc';
 	protected $connection = NULL;
 	protected $alive = false;
 	protected $options = array();
@@ -242,7 +241,7 @@ abstract class WP_FFPC_Backend {
 			$this->log (  __translate__('flushing cache', 'wp-ffpc') );
 
 			/* proxy to internal function */
-			$internal = $this->_flush();
+			$result = $this->_flush();
 
 			if ( $result === false )
 				$this->log (  __translate__('failed to flush cache', 'wp-ffpc'), LOG_WARNING );

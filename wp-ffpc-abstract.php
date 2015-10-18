@@ -10,6 +10,14 @@ if ( !function_exists ('__translate__') ) {
 	}
 }
 
+if ( !function_exists ('__debug__') ) {
+	/* __ only availabe if we're running from the inside of wordpress, not in advanced-cache.php phase */
+	function __debug__ ( $text ) {
+		if ( defined('WP_FFPC__DEBUG_MODE') && WP_FFPC__DEBUG_MODE == true)
+			error_log ( __FILE__ . ': ' . $text );
+	}
+}
+
 if (!class_exists('WP_FFPC_ABSTRACT')):
 
 /**

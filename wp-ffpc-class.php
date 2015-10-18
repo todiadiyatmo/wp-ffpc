@@ -67,6 +67,7 @@ class WP_FFPC extends WP_FFPC_ABSTRACT {
 	 *
 	 */
 	public function plugin_post_construct () {
+		static::debug ( __CLASS__, 'post_construct' );
 		$this->plugin_url = plugin_dir_url( __FILE__ );
 		$this->plugin_dir = plugin_dir_path( __FILE__ );
 
@@ -78,6 +79,7 @@ class WP_FFPC extends WP_FFPC_ABSTRACT {
 	 * init hook function runs before admin panel hook, themeing and options read
 	 */
 	public function plugin_pre_init() {
+		static::debug ( __CLASS__, 'pre_init' );
 		/* advanced cache "worker" file */
 		$this->acache_worker = $this->plugin_dir . $this->plugin_constant . '-acache.php';
 		/* WordPress advanced-cache.php file location */
@@ -242,7 +244,7 @@ class WP_FFPC extends WP_FFPC_ABSTRACT {
 		/* get the current runtime configuration for memcache in PHP because Memcache in binary mode is really problematic */
 		if ( extension_loaded ( 'memcache' )  ) {
 			$memcache_settings = ini_get_all( 'memcache' );
-			if ( !empty ( $memcache_settings ) && $this->options['cache_type'] == 'memcache' )
+			if ( !empty ( $memcache_settings ) && $this->options['cache_type'] == 'memcache' && isset($memcache_settings['memcache.protocol']) )
 			{
 				$memcache_protocol = strtolower($memcache_settings['memcache.protocol']['local_value']);
 				if ( $memcache_protocol == 'binary' ) {
@@ -1000,7 +1002,7 @@ class WP_FFPC extends WP_FFPC_ABSTRACT {
 	 */
 	private function deploy_advanced_cache( ) {
 
-		if ( !is_writable( $this->acache )) {
+		if (!touch($this->acache)) {
 			error_log('Generating advanced-cache.php failed: '.$this->acache.' is not writable');
 			return false;
 		}
@@ -1010,6 +1012,7 @@ class WP_FFPC extends WP_FFPC_ABSTRACT {
 			error_log('Generating advanced-cache.php failed: Global config is empty');
 			return false;
 		}
+
 
 		/* add the required includes and generate the needed code */
 		$string[] = "<?php";

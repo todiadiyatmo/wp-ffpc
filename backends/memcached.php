@@ -7,13 +7,13 @@ class WP_FFPC_Backend_memcached extends WP_FFPC_Backend {
 	protected function _init () {
 		/* Memcached class does not exist, Memcached extension is not available */
 		if (!class_exists('Memcached')) {
-			$this->log (  __translate__(' Memcached extension missing, wp-ffpc will not be able to function correctly!', $this->plugin_constant ), LOG_WARNING );
+			$this->log (  __translate__(' Memcached extension missing, wp-ffpc will not be able to function correctly!', 'wp-ffpc' ), LOG_WARNING );
 			return false;
 		}
 
 		/* check for existing server list, otherwise we cannot add backends */
 		if ( empty ( $this->options['servers'] ) && ! $this->alive ) {
-			$this->log (  __translate__("Memcached servers list is empty, init failed", $this->plugin_constant ), LOG_WARNING );
+			$this->log (  __translate__("Memcached servers list is empty, init failed", 'wp-ffpc' ), LOG_WARNING );
 			return false;
 		}
 
@@ -34,7 +34,7 @@ class WP_FFPC_Backend_memcached extends WP_FFPC_Backend {
 
 		/* check if initialization was success or not */
 		if ( $this->connection === NULL ) {
-			$this->log (  __translate__( 'error initializing Memcached PHP extension, exiting', $this->plugin_constant ) );
+			$this->log (  __translate__( 'error initializing Memcached PHP extension, exiting', 'wp-ffpc' ) );
 			return false;
 		}
 
@@ -59,7 +59,7 @@ class WP_FFPC_Backend_memcached extends WP_FFPC_Backend {
 			/* only add servers that does not exists already  in connection pool */
 			if ( !@array_key_exists($server_id , $servers_alive ) ) {
 				$this->connection->addServer( $server['host'], $server['port'] );
-				$this->log ( sprintf( __translate__( '%s added', $this->plugin_constant ),  $server_id ) );
+				$this->log ( sprintf( __translate__( '%s added', 'wp-ffpc' ),  $server_id ) );
 			}
 		}
 
@@ -74,7 +74,7 @@ class WP_FFPC_Backend_memcached extends WP_FFPC_Backend {
 	 */
 	protected function _status () {
 		/* server status will be calculated by getting server stats */
-		$this->log (  __translate__("checking server statuses", $this->plugin_constant ));
+		$this->log (  __translate__("checking server statuses", 'wp-ffpc' ));
 		/* get server list from connection */
 		$servers =  $this->connection->getServerList();
 
@@ -82,8 +82,8 @@ class WP_FFPC_Backend_memcached extends WP_FFPC_Backend {
 			$server_id = $server['host'] . self::port_separator . $server['port'];
 			/* reset server status to offline */
 			$this->status[$server_id] = 0;
-				if ($this->connection->set($this->plugin_constant, time())) {
-					$this->log ( sprintf( __translate__( '%s server is up & running', $this->plugin_constant ),  $server_id ) );
+				if ($this->connection->set('wp-ffpc', time())) {
+					$this->log ( sprintf( __translate__( '%s server is up & running', 'wp-ffpc' ),  $server_id ) );
 				$this->status[$server_id] = 1;
 			}
 		}
@@ -113,9 +113,9 @@ class WP_FFPC_Backend_memcached extends WP_FFPC_Backend {
 		/* if storing failed, log the error code */
 		if ( $result === false ) {
 			$code = $this->connection->getResultCode();
-			$this->log ( sprintf( __translate__( 'unable to set entry: %s', $this->plugin_constant ),  $key ) );
-			$this->log ( sprintf( __translate__( 'Memcached error code: %s', $this->plugin_constant ),  $code ) );
-			//throw new Exception ( __translate__('Unable to store Memcached entry ', $this->plugin_constant ) . $key . __translate__( ', error code: ', $this->plugin_constant ) . $code );
+			$this->log ( sprintf( __translate__( 'unable to set entry: %s', 'wp-ffpc' ),  $key ) );
+			$this->log ( sprintf( __translate__( 'Memcached error code: %s', 'wp-ffpc' ),  $code ) );
+			//throw new Exception ( __translate__('Unable to store Memcached entry ', 'wp-ffpc' ) . $key . __translate__( ', error code: ', 'wp-ffpc' ) . $code );
 		}
 
 		return $result;
@@ -146,11 +146,11 @@ class WP_FFPC_Backend_memcached extends WP_FFPC_Backend {
 
 			if ( $kresult === false ) {
 				$code = $this->connection->getResultCode();
-				$this->log ( sprintf( __translate__( 'unable to delete entry: %s', $this->plugin_constant ),  $key ) );
-				$this->log ( sprintf( __translate__( 'Memcached error code: %s', $this->plugin_constant ),  $code ) );
+				$this->log ( sprintf( __translate__( 'unable to delete entry: %s', 'wp-ffpc' ),  $key ) );
+				$this->log ( sprintf( __translate__( 'Memcached error code: %s', 'wp-ffpc' ),  $code ) );
 			}
 			else {
-				$this->log ( sprintf( __translate__( 'entry deleted: %s', $this->plugin_constant ),  $key ) );
+				$this->log ( sprintf( __translate__( 'entry deleted: %s', 'wp-ffpc' ),  $key ) );
 			}
 		}
 	}

@@ -4,7 +4,7 @@ Donate link: https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_i
 Tags: cache, page cache, full page cache, nginx, memcached, apc, speed
 Requires at least: 3.0
 Tested up to: 4.3.1
-Stable tag: 1.9.0
+Stable tag: 1.9.1
 License: GPLv3
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
 
@@ -127,6 +127,14 @@ Version numbering logic:
 * every A. indicates BIG changes.
 * every .B version indicates new features.
 * every ..C indicates bugfixes for A.B version.
+
+= 1.9.1 =
+*2015-10-18*
+
+* bugfix for is_writable check failures ( see: https://wordpress.org/support/topic/settings-saved-but-getting-not-saved-error-message)
+* bugfix for memcached.protocol notice
+* typo fixes
+* replace variable with string constant in translatable messages
 
 = 1.9.0 =
 *2015-10-14*
