@@ -139,6 +139,7 @@ foreach ( $wp_ffpc_keys as $internal => $key ) {
 	else {
 		/* store results */
 		$wp_ffpc_values[ $internal ] = $value;
+		__debug__('Got value for ' . $internal);
 	}
 }
 
@@ -177,32 +178,57 @@ if ( array_key_exists( "HTTP_IF_MODIFIED_SINCE" , $_SERVER ) && !empty( $wp_ffpc
 if (!empty ( $wp_ffpc_values['meta']['mime'] ) )
 	header('Content-Type: ' . $wp_ffpc_values['meta']['mime']);
 
-/* don't allow browser caching of page */
-header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0, post-check=0, pre-check=0');
-header('Pragma: no-cache');
+/* set expiry date */
+if (isset($wp_ffpc_values['meta']['expire']) && !empty ( $wp_ffpc_values['meta']['expire'] ) ) {
+	$hash = md5 ( $wp_ffpc_uri . $wp_ffpc_values['meta']['expire'] );
 
-/* expire at this very moment */
-header('Expires: ' . gmdate("D, d M Y H:i:s", time() ) . " GMT");
+	switch ($wp_ffpc_values['meta']['type']) {
+		case 'home':
+		case 'feed':
+			$expire = $wp_ffpc_config['browsercache_home'];
+			break;
+		case 'archive':
+			$expire = $wp_ffpc_config['browsercache_taxonomy'];
+			break;
+		case 'single':
+			$expire = $wp_ffpc_config['browsercache'];
+			break;
+		default:
+			$expire = 0;
+	}
+
+	header('Cache-Control: public,max-age='.$expire.',s-maxage='.$expire.',must-revalidate');
+	header('Expires: ' . gmdate("D, d M Y H:i:s", $wp_ffpc_values['meta']['expire'] ) . " GMT");
+	header('ETag: '. $hash);
+	unset($expire, $hash);
+}
+else {
+	/* in case there is no expiry set, expire immediately and don't serve Etag; browser cache is disabled */
+	header('Expires: ' . gmdate("D, d M Y H:i:s", time() ) . " GMT");
+	/* if I set these, the 304 not modified will never, ever kick in, so not setting these
+	 * leaving here as a reminder why it should not be set */
+	//header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0, s-maxage=0, post-check=0, pre-check=0');
+	//header('Pragma: no-cache');
+}
 
 /* if shortlinks were set */
-if (!empty ( $wp_ffpc_values['meta']['shortlink'] ) )
+if (isset($wp_ffpc_values['meta']['shortlink']) && !empty ( $wp_ffpc_values['meta']['shortlink'] ) )
 	header( 'Link:<'. $wp_ffpc_values['meta']['shortlink'] .'>; rel=shortlink' );
 
 /* if last modifications were set (for posts & pages) */
-if ( !empty($wp_ffpc_values['meta']['lastmodified']) )
+if (isset($wp_ffpc_values['meta']['lastmodified']) && !empty($wp_ffpc_values['meta']['lastmodified']) )
 	header( 'Last-Modified: ' . gmdate("D, d M Y H:i:s", $wp_ffpc_values['meta']['lastmodified'] ). " GMT" );
 
 /* pingback urls, if existx */
-if ( !empty( $wp_ffpc_values['meta']['pingback'] ) && $wp_ffpc_config['pingback_header'] )
+if ( isset($wp_ffpc_values['meta']['pingback']) && !empty( $wp_ffpc_values['meta']['pingback'] ) && isset($wp_ffpc_config['pingback_header']) && $wp_ffpc_config['pingback_header'] )
 	header( 'X-Pingback: ' . $wp_ffpc_values['meta']['pingback'] );
 
 /* for debugging */
-if ( $wp_ffpc_config['response_header'] )
+if ( isset($wp_ffpc_config['response_header']) && $wp_ffpc_config['response_header'] )
 	header( 'X-Cache-Engine: WP-FFPC with ' . $wp_ffpc_config['cache_type'] .' via PHP');
 
 /* HTML data */
-
-if ( $wp_ffpc_config['generate_time'] == '1' && stripos($wp_ffpc_values['data'], '</body>') ) {
+if ( isset($wp_ffpc_config['generate_time']) && $wp_ffpc_config['generate_time'] == '1' && stripos($wp_ffpc_values['data'], '</body>') ) {
 	$mtime = explode ( " ", microtime() );
 	$wp_ffpc_gentime = ( $mtime[1] + $mtime[0] ) - $wp_ffpc_gentime;
 
@@ -284,18 +310,90 @@ function wp_ffpc_callback( $buffer ) {
 		}
 	}
 
-	if ( is_home() )
-		$meta['type'] = 'home';
-	elseif (is_feed() )
-		$meta['type'] = 'feed';
-	elseif ( is_archive() )
+	if ( is_home() || is_feed() ) {
+		if (is_home())
+			$meta['type'] = 'home';
+		elseif(is_feed())
+			$meta['type'] = 'feed';
+
+		if (isset($wp_ffpc_config['browsercache_home']) && !empty($wp_ffpc_config['browsercache_home']) && $wp_ffpc_config['browsercache_home'] > 0) {
+			$meta['expire'] = time() + $wp_ffpc_config['browsercache_home'];
+		}
+
+		__debug__( 'Getting latest post for for home & feed');
+		/* get newest post and set last modified accordingly */
+		$args = array(
+			'numberposts' => 1,
+			'orderby' => 'modified',
+			'order' => 'DESC',
+			'post_status' => 'publish',
+		);
+
+		$recent_post = wp_get_recent_posts( $args, OBJECT );
+		if ( !empty($recent_post)) {
+			$recent_post = array_pop($recent_post);
+			if (!empty ( $recent_post->post_modified_gmt ) ) {
+				$meta['lastmodified'] = strtotime ( $recent_post->post_modified_gmt );
+			}
+		}
+
+	}
+	elseif ( is_archive() ) {
 		$meta['type'] = 'archive';
-	elseif ( is_single() )
+		if (isset($wp_ffpc_config['browsercache_taxonomy']) && !empty($wp_ffpc_config['browsercache_taxonomy']) && $wp_ffpc_config['browsercache_taxonomy'] > 0) {
+			$meta['expire'] = time() + $wp_ffpc_config['browsercache_taxonomy'];
+		}
+
+		global $wp_query;
+
+		if ( null != $wp_query->tax_query && !empty($wp_query->tax_query)) {
+			__debug__( 'Getting latest post for taxonomy: ' . json_encode($wp_query->tax_query));
+
+			$args = array(
+				'numberposts' => 1,
+				'orderby' => 'modified',
+				'order' => 'DESC',
+				'post_status' => 'publish',
+				'tax_query' => $wp_query->tax_query,
+			);
+
+			$recent_post =  get_posts( $args, OBJECT );
+
+			if ( !empty($recent_post)) {
+				$recent_post = array_pop($recent_post);
+				if (!empty ( $recent_post->post_modified_gmt ) ) {
+					$meta['lastmodified'] = strtotime ( $recent_post->post_modified_gmt );
+				}
+			}
+		}
+
+	}
+	elseif ( is_single() || is_page() ) {
 		$meta['type'] = 'single';
-	elseif ( is_page() )
-		$meta['type'] = 'page';
-	else
+		if (isset($wp_ffpc_config['browsercache']) && !empty($wp_ffpc_config['browsercache']) && $wp_ffpc_config['browsercache'] > 0) {
+			$meta['expire'] = time() + $wp_ffpc_config['browsercache'];
+		}
+
+		/* try if post is available
+			if made with archieve, last listed post can make this go bad
+		*/
+		global $post;
+		if ( !empty($post) && !empty ( $post->post_modified_gmt ) ) {
+			/* get last modification data */
+			$meta['lastmodified'] = strtotime ( $post->post_modified_gmt );
+
+			/* get shortlink, if possible */
+			if (function_exists('wp_get_shortlink')) {
+				$shortlink = wp_get_shortlink( );
+				if (!empty ( $shortlink ) )
+					$meta['shortlink'] = $shortlink;
+			}
+		}
+
+	}
+	else {
 		$meta['type'] = 'unknown';
+	}
 
 	if ( $meta['type'] != 'unknown' ) {
 		/* check if caching is disabled for page type */
@@ -322,22 +420,6 @@ function wp_ffpc_callback( $buffer ) {
 
 	/* set mimetype */
 	$meta['mime'] = $meta['mime'] . $wp_ffpc_config['charset'];
-
-	/* try if post is available
-		if made with archieve, last listed post can make this go bad
-	*/
-	global $post;
-	if ( !empty($post) && ( $meta['type'] == 'single' || $meta['type'] == 'page' ) && !empty ( $post->post_modified_gmt ) ) {
-		/* get last modification data */
-		$meta['lastmodified'] = strtotime ( $post->post_modified_gmt );
-
-		/* get shortlink, if possible */
-		if (function_exists('wp_get_shortlink')) {
-			$shortlink = wp_get_shortlink( );
-			if (!empty ( $shortlink ) )
-				$meta['shortlink'] = $shortlink;
-		}
-	}
 
 	/* store pingback url if pingbacks are enabled */
 	if ( get_option ( 'default_ping_status' ) == 'open' )

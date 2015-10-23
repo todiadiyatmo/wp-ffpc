@@ -492,6 +492,14 @@ class WP_FFPC extends WP_FFPC_ABSTRACT {
 				</dd>
 
 				<dt>
+					<label for="browsercache"><?php _e('Browser cache expiration time of posts', 'wp-ffpc'); ?></label>
+				</dt>
+				<dd>
+					<input type="number" name="browsercache" id="browsercache" value="<?php echo $this->options['browsercache']; ?>" />
+					<span class="description"><?php _e('Sets validity time of posts/pages/singles for the browser cache.', 'wp-ffpc'); ?></span>
+				</dd>
+
+				<dt>
 					<label for="expire_taxonomy"><?php _e('Expiration time for taxonomy', 'wp-ffpc'); ?></label>
 				</dt>
 				<dd>
@@ -500,11 +508,27 @@ class WP_FFPC extends WP_FFPC_ABSTRACT {
 				</dd>
 
 				<dt>
+					<label for="browsercache_taxonomy"><?php _e('Browser cache expiration time of taxonomy', 'wp-ffpc'); ?></label>
+				</dt>
+				<dd>
+					<input type="number" name="browsercache_taxonomy" id="browsercache_taxonomy" value="<?php echo $this->options['browsercache_taxonomy']; ?>" />
+					<span class="description"><?php _e('Sets validity time of taxonomy for the browser cache.', 'wp-ffpc'); ?></span>
+				</dd>
+
+				<dt>
 					<label for="expire_home"><?php _e('Expiration time for home', 'wp-ffpc'); ?></label>
 				</dt>
 				<dd>
 					<input type="number" name="expire_home" id="expire_home" value="<?php echo $this->options['expire_home']; ?>" />
-					<span class="description"><?php _e('Sets validity time of home.', 'wp-ffpc'); ?></span>
+					<span class="description"><?php _e('Sets validity time of home on server side.', 'wp-ffpc'); ?></span>
+				</dd>
+
+				<dt>
+					<label for="browsercache_home"><?php _e('Browser cache expiration time of home', 'wp-ffpc'); ?></label>
+				</dt>
+				<dd>
+					<input type="number" name="browsercache_home" id="browsercache_home" value="<?php echo $this->options['browsercache_home']; ?>" />
+					<span class="description"><?php _e('Sets validity time of home for the browser cache.', 'wp-ffpc'); ?></span>
 				</dd>
 
 				<dt>

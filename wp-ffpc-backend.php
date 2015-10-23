@@ -386,12 +386,17 @@ abstract class WP_FFPC_Backend {
 
 				if ( !empty ( $terms ) ) {
 					foreach ( $terms as $term ) {
+
+						/* skip terms that have no post associated and somehow slipped
+						 * throught hide_empty */
+						if ( $term->count == 0)
+							continue;
+
 						/* get the permalink for the term */
 						$link = get_term_link ( $term->slug, $taxonomy->name );
 						/* add to container */
 						$links[ $link ] = true;
-						/* remove the taxonomy name from the link, lots of plugins remove this for SEO, it's better to include them than leave them out
-						   in worst case, we cache some 404 as well
+						/* remove the taxonomy name from the link, lots of plugins remove this for SEO, it's better to include them than leave them out in worst case, we cache some 404 as well
 						*/
 						$link = str_replace ( '/'.$taxonomy->rewrite['slug'], '', $link  );
 						/* add to container */

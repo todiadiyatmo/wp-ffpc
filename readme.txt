@@ -4,7 +4,7 @@ Donate link: https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_i
 Tags: cache, page cache, full page cache, nginx, memcached, apc, speed
 Requires at least: 3.0
 Tested up to: 4.3.1
-Stable tag: 1.9.1
+Stable tag: 1.10.0
 License: GPLv3
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
 
@@ -79,6 +79,7 @@ Many thanks for donations, contributors, supporters, testers & bug reporters:
 * Knut Sparhell
 * Christian Kernbeis
 * Gausden Barry
+* Maksim Bukreyeu
 
 == Installation ==
 
@@ -127,6 +128,18 @@ Version numbering logic:
 * every A. indicates BIG changes.
 * every .B version indicates new features.
 * every ..C indicates bugfixes for A.B version.
+
+= 1.10.0 =
+*2015-10-23*
+
+*IMPORTANT, READ THIS*
+
+proper browser cache support:
+* new options to set real browser cache expiry for singles, taxonomy and home
+* added Etag support based on browser cache expiry
+* added proper Expires header according to cache entry generation time + browser cache expiry
+* added support for Last Modified header for home & taxonomy ( singles already had it) based on the last post modified date within the taxonomy
+
 
 = 1.9.1 =
 *2015-10-18*
