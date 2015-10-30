@@ -4,7 +4,7 @@ Donate link: https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_i
 Tags: cache, page cache, full page cache, nginx, memcached, apc, speed
 Requires at least: 3.0
 Tested up to: 4.3.1
-Stable tag: 1.10.0
+Stable tag: 1.10.1
 License: GPLv3
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
 
@@ -80,6 +80,7 @@ Many thanks for donations, contributors, supporters, testers & bug reporters:
 * Christian Kernbeis
 * Gausden Barry
 * Maksim Bukreyeu
+* Lissome Hong Kong Limited
 
 == Installation ==
 
@@ -128,6 +129,12 @@ Version numbering logic:
 * every A. indicates BIG changes.
 * every .B version indicates new features.
 * every ..C indicates bugfixes for A.B version.
+
+= 1.10.1 =
+*2015-10-30*
+
+* fixed nginx configuration sample snippets
+* nginx configuration moved from Settings tab to Help tab, so if you're looking for the "nginx" tab, you need to look under "Help" on the WP-FFPC Settings page.
 
 = 1.10.0 =
 *2015-10-23*

@@ -261,6 +261,8 @@ class WP_FFPC extends WP_FFPC_ABSTRACT {
 				}
 			}
 		}
+
+		add_filter('contextual_help', array( &$this, 'plugin_admin_nginx_help' ), 10, 2);
 	}
 
 	/**
@@ -366,6 +368,28 @@ class WP_FFPC extends WP_FFPC_ABSTRACT {
 			) );
 			*/
 
+		}
+
+		return $contextual_help;
+	}
+
+	/**
+	 * admin help panel
+	 */
+	public function plugin_admin_nginx_help($contextual_help, $screen_id ) {
+
+		/* add our page only if the screenid is correct */
+		if ( strpos( $screen_id, $this->plugin_settings_page ) ) {
+			$content = __('<h3>Sample config for nginx to utilize the data entries</h3>', 'wp-ffpc');
+			$content .= __('<div class="update-nag">This is not meant to be a copy-paste configuration; you most probably have to tailor it to your needs.</div>', 'wp-ffpc');
+			$content .= __('<div class="update-nag"><strong>In case you are about to use nginx to fetch memcached entries directly and to use SHA1 hash keys, you will need an nginx version compiled with <a href="http://wiki.nginx.org/HttpSetMiscModule">HttpSetMiscModule</a>. Otherwise set_sha1 function is not available in nginx.</strong></div>', 'wp-ffpc');
+			$content .= '<code><pre>' . $this->nginx_example() . '</pre></code>';
+
+			get_current_screen()->add_help_tab( array(
+					'id'		=> 'wp-ffpc-nginx-help',
+					'title'		=> __( 'nginx example', 'wp-ffpc' ),
+					'content'	=> $content,
+			) );
 		}
 
 		return $contextual_help;
@@ -781,12 +805,6 @@ class WP_FFPC extends WP_FFPC_ABSTRACT {
 			</dl>
 			</fieldset>
 
-			<fieldset id="<?php echo $this->plugin_constant ?>-nginx">
-			<legend><?php _e('Sample config for nginx to utilize the data entries', 'wp-ffpc'); ?></legend>
-			<div class="update-nag"><strong>In case you are about to use nginx to fetch memcached entries directly and to use SHA1 hash keys, you will need an nginx version compiled with <a href="http://wiki.nginx.org/HttpSetMiscModule">HttpSetMiscModule</a>. Otherwise set_sha1 function is not available in nginx.</strong></div>
-			<pre><?php echo $this->nginx_example(); ?></pre>
-			</fieldset>
-
 			<fieldset id="<?php echo $this->plugin_constant ?>-precache">
 			<legend><?php _e('Precache settings & log from previous pre-cache generation', 'wp-ffpc'); ?></legend>
 
@@ -909,7 +927,6 @@ class WP_FFPC extends WP_FFPC_ABSTRACT {
 			'debug' => __( 'Debug & in-depth', 'wp-ffpc'),
 			'exceptions' => __( 'Cache exceptions', 'wp-ffpc'),
 			'servers' => __( 'Backend settings', 'wp-ffpc'),
-			'nginx' => __( 'nginx', 'wp-ffpc'),
 			'precache' => __( 'Precache & precache log', 'wp-ffpc')
 		);
 
@@ -1060,10 +1077,10 @@ class WP_FFPC extends WP_FFPC_ABSTRACT {
 		$nginx = file_get_contents ( $this->nginx_sample );
 
 		if ( isset($this->options['hashkey']) && $this->options['hashkey'] == true )
-			$mckeys = 'set_sha1 $memcached_sha1_key $memcached_raw_key;
-			set $memcached_key DATAPREFIX$memcached_sha1_key;';
+			$mckeys = '    set_sha1 $memcached_sha1_key $memcached_raw_key;
+    set $memcached_key DATAPREFIX$memcached_sha1_key;';
 		else
-			$mckeys = 'set $memcached_key DATAPREFIX$memcached_raw_key;';
+			$mckeys = '    set $memcached_key DATAPREFIX$memcached_raw_key;';
 
 		$nginx = str_replace ( 'HASHEDORNOT' , $mckeys , $nginx );
 
@@ -1089,9 +1106,9 @@ class WP_FFPC extends WP_FFPC_ABSTRACT {
 		$loggedincookies = join('|', $this->backend->cookies );
 		/* this part is not used when the cache is turned on for logged in users */
 		$loggedin = '
-			if ($http_cookie ~* "'. $loggedincookies .'" ) {
-				set $memcached_request 0;
-			}';
+    if ($http_cookie ~* "'. $loggedincookies .'" ) {
+        set $memcached_request 0;
+    }';
 
 		/* add logged in cache, if valid */
 		if ( ! $this->options['cache_loggedin'])
@@ -1104,9 +1121,9 @@ class WP_FFPC extends WP_FFPC_ABSTRACT {
 			$cookies = str_replace( ",","|", $this->options['nocache_cookies'] );
 			$cookies = str_replace( " ","", $cookies );
 			$cookie_exception = '# avoid cache for cookies specified
-			if ($http_cookie ~* ' . $cookies . ' ) {
-				set $memcached_request 0;
-			}';
+    if ($http_cookie ~* ' . $cookies . ' ) {
+        set $memcached_request 0;
+    }';
 			$nginx = str_replace ( 'COOKIES_EXCEPTION' , $cookie_exception , $nginx );
 		} else {
 			$nginx = str_replace ( 'COOKIES_EXCEPTION' , '' , $nginx );
@@ -1121,7 +1138,7 @@ class WP_FFPC extends WP_FFPC_ABSTRACT {
 			$nginx = str_replace ( 'RESPONSE_HEADER' , '' , $nginx );
 		}
 
-		return $nginx;
+		return htmlspecialchars($nginx);
 	}
 
 	/**
