@@ -134,12 +134,11 @@ Version numbering logic:
 
 *IMPORTANT, READ THIS*
 
-proper browser cache support:
-* new options to set real browser cache expiry for singles, taxonomy and home
-* added Etag support based on browser cache expiry
-* added proper Expires header according to cache entry generation time + browser cache expiry
-* added support for Last Modified header for home & taxonomy ( singles already had it) based on the last post modified date within the taxonomy
-
+* Proper browser cache support:
+    * new options to set real browser cache expiry for singles, taxonomy and home
+    * added Etag support based on browser cache expiry
+    * added proper Expires header according to cache entry generation time + browser cache expiry
+    * added support for Last Modified header for home & taxonomy ( singles already had it) based on the last post modified date within the taxonomy
 
 = 1.9.1 =
 *2015-10-18*
