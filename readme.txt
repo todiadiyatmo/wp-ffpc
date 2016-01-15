@@ -3,8 +3,8 @@ Contributors: cadeyrn, ameir, haroldkyle, plescheff, dkcwd, IgorCode
 Donate link: https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=XU3DG7LLA76WC
 Tags: cache, page cache, full page cache, nginx, memcached, apc, speed
 Requires at least: 3.0
-Tested up to: 4.3.1
-Stable tag: 1.10.1
+Tested up to: 4.4.1
+Stable tag: 1.11.0
 License: GPLv3
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
 
@@ -13,7 +13,8 @@ The fastest way to cache: use the memory!
 == Description ==
 
 WP-FFPC ( WordPress Fast Full Page Cache ) is a cache plugin for [WordPress](http://wordpress.org/ "WordPress"). It works with any webserver, including apache2, lighttpd, nginx.
-It can be configured to join forces with [NGiNX](http://NGiNX.org "NGiNX")'s built-in [memcached plugin](http://nginx.org/en/docs/http/ngx_http_memcached_module.html "memcached plugin") for unbeatable speed.
+
+It can be configured to join forces with [NGiNX](http://NGiNX.org "NGiNX")'s built-in [memcached plugin](http://nginx.org/en/docs/http/ngx_http_memcached_module.html "memcached plugin").
 
 = **IMPORTANT NOTES, PLEASE READ THIS LIST** =
 
@@ -129,6 +130,12 @@ Version numbering logic:
 * every A. indicates BIG changes.
 * every .B version indicates new features.
 * every ..C indicates bugfixes for A.B version.
+
+= 1.11.0 =
+*2016-01-15*
+
+* merged filter for HTML before it hits the cache
+* refactored logging
 
 = 1.10.1 =
 *2015-10-30*
