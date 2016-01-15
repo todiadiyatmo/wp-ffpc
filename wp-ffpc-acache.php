@@ -439,6 +439,19 @@ function wp_ffpc_callback( $buffer ) {
 		$to_store = substr_replace( $buffer, $insertion, $index, 0);
 	}
 
+	/**
+	 * Allows to edit the content to be stored in cache.
+	 *
+	 * This hooks allows the user to edit the page content right before it is about
+	 * to be stored in the cache. This could be useful for alterations like
+	 * minification.
+	 *
+	 * @since 1.10.2
+	 *
+	 * @param string $to_store The content to be stored in cache.
+	 */
+	$to_store = apply_filters( 'wp-ffpc-to-store', $to_store );
+
 	$prefix_meta = $wp_ffpc_backend->key ( $wp_ffpc_config['prefix_meta'] );
 	$wp_ffpc_backend->set ( $prefix_meta, $meta );
 
