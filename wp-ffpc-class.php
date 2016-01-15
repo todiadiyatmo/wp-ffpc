@@ -1,5 +1,7 @@
 <?php
 
+defined('ABSPATH') or die("Walk away.");
+
 if ( ! class_exists( 'WP_FFPC' ) ) :
 
 /* get the plugin abstract class*/
@@ -136,8 +138,9 @@ class WP_FFPC extends WP_FFPC_ABSTRACT {
 			'redis' => __( 'Redis (experimental, it will break!)' , 'wp-ffpc'),
 		);
 		/* check for required functions / classes for the cache types */
+
 		$this->valid_cache_type = array (
-			'apc' => function_exists( 'apc_cache_info' ) ? true : false,
+			'apc' => (function_exists( 'apc_cache_info' ) && version_compare(PHP_VERSION, '5.3.0') <= 0 ) ? true : false,
 			'apcu' => function_exists( 'apcu_cache_info' ) ? true : false,
 			'memcache' => class_exists ( 'Memcache') ? true : false,
 			'memcached' => class_exists ( 'Memcached') ? true : false,
@@ -148,8 +151,7 @@ class WP_FFPC extends WP_FFPC_ABSTRACT {
 		$this->select_invalidation_method = array (
 			0 => __( 'flush cache' , 'wp-ffpc'),
 			1 => __( 'only modified post' , 'wp-ffpc'),
-			2 => __( 'modified post and all taxonomies' , 'wp-ffpc'),
-			3 => __( 'modified post and posts index page' , 'wp-ffpc'),
+			2 => __( 'modified post and all related taxonomies' , 'wp-ffpc'),
 		);
 
 		/* map of possible key masks */
@@ -159,6 +161,7 @@ class WP_FFPC extends WP_FFPC_ABSTRACT {
 			'$request_uri' => __('The *original* request URI as received from the client including the args', 'wp-ffpc'),
 			'$remote_user' => __('Name of user, authenticated by the Auth Basic Module', 'wp-ffpc'),
 			'$cookie_PHPSESSID' => __('PHP Session Cookie ID, if set ( empty if not )', 'wp-ffpc'),
+			'$accept_lang' => __('First HTTP Accept Lang set in the HTTP request', 'wp-ffpc'),
 			//'$cookie_COOKnginy IE' => __('Value of COOKIE', 'wp-ffpc'),
 			//'$http_HEADER' => __('Value of HTTP request header HEADER ( lowercase, dashes converted to underscore )', 'wp-ffpc'),
 			//'$query_string' => __('Full request URI after rewrites', 'wp-ffpc'),
@@ -576,8 +579,7 @@ class WP_FFPC extends WP_FFPC_ABSTRACT {
 							$invalidation_method_description = array(
 								'clears everything in storage, <strong>including values set by other applications</strong>',
 								'clear only the modified posts entry, everything else remains in cache',
-								'removes all taxonomy term cache ( categories, tags, home, etc ) and the modified post as well<br><strong>Caution! Slows down page/post saving when there are many tags.</strong>',
-								'clear cache for modified post and posts index page'
+								'unvalidates post and the taxonomy related to the post',
 							);
 							foreach ($this->select_invalidation_method AS $current_key => $current_invalidation_method) {
 								printf('<li><em>%1$s</em> - %2$s</li>', $current_invalidation_method, $invalidation_method_description[$current_key]);

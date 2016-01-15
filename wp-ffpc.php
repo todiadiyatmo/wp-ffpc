@@ -25,6 +25,8 @@ License: GPLv3
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
+defined('ABSPATH') or die("Walk away.");
+
 include_once ( 'wp-ffpc-class.php' );
 
 $wp_ffpc_defaults = array (

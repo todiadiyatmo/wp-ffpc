@@ -1,4 +1,7 @@
 <?php
+
+defined('ABSPATH') or die("Walk away.");
+
 /* __ only availabe if we're running from the inside of wordpress, not in advanced-cache.php phase */
 if ( !function_exists ('__translate__') ) {
 	/* __ only availabe if we're running from the inside of wordpress, not in advanced-cache.php phase */
