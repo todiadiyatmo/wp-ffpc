@@ -1,9 +1,9 @@
 <?php
 
-defined('ABSPATH') or die("Walk away.");
-
 if ( ! class_exists( 'WP_FFPC' ) ) :
 
+/* include the pluggable functon*/
+include_once ( dirname(__FILE__) . '/wp-ffpc-pluggable.php' );
 /* get the plugin abstract class*/
 include_once ( dirname(__FILE__) . '/wp-ffpc-abstract.php' );
 /* get the common functions class*/
@@ -138,9 +138,8 @@ class WP_FFPC extends WP_FFPC_ABSTRACT {
 			'redis' => __( 'Redis (experimental, it will break!)' , 'wp-ffpc'),
 		);
 		/* check for required functions / classes for the cache types */
-
 		$this->valid_cache_type = array (
-			'apc' => (function_exists( 'apc_cache_info' ) && version_compare(PHP_VERSION, '5.3.0') <= 0 ) ? true : false,
+			'apc' => function_exists( 'apc_cache_info' ) ? true : false,
 			'apcu' => function_exists( 'apcu_cache_info' ) ? true : false,
 			'memcache' => class_exists ( 'Memcache') ? true : false,
 			'memcached' => class_exists ( 'Memcached') ? true : false,
@@ -151,7 +150,8 @@ class WP_FFPC extends WP_FFPC_ABSTRACT {
 		$this->select_invalidation_method = array (
 			0 => __( 'flush cache' , 'wp-ffpc'),
 			1 => __( 'only modified post' , 'wp-ffpc'),
-			2 => __( 'modified post and all related taxonomies' , 'wp-ffpc'),
+			2 => __( 'modified post and all taxonomies' , 'wp-ffpc'),
+			3 => __( 'modified post and posts index page' , 'wp-ffpc'),
 		);
 
 		/* map of possible key masks */
@@ -161,12 +161,29 @@ class WP_FFPC extends WP_FFPC_ABSTRACT {
 			'$request_uri' => __('The *original* request URI as received from the client including the args', 'wp-ffpc'),
 			'$remote_user' => __('Name of user, authenticated by the Auth Basic Module', 'wp-ffpc'),
 			'$cookie_PHPSESSID' => __('PHP Session Cookie ID, if set ( empty if not )', 'wp-ffpc'),
-			'$accept_lang' => __('First HTTP Accept Lang set in the HTTP request', 'wp-ffpc'),
 			//'$cookie_COOKnginy IE' => __('Value of COOKIE', 'wp-ffpc'),
 			//'$http_HEADER' => __('Value of HTTP request header HEADER ( lowercase, dashes converted to underscore )', 'wp-ffpc'),
 			//'$query_string' => __('Full request URI after rewrites', 'wp-ffpc'),
 			//'' => __('', 'wp-ffpc'),
 		);
+
+		/* Map of All Role */
+		global $wp_roles;
+
+    	$all_roles = $wp_roles->roles;
+    	$this->wp_roles = apply_filters('editable_roles', $all_roles);
+
+    	$this->wp_roles_cookie_key  = array();
+
+    	// Set secret cookies key for each user role
+    	foreach ( $this->wp_roles as $key => $value) {
+    		$this->wp_roles_cookie_key [ $key ] = 'wp_ffpc_' . md5(NONCE_KEY . $key);
+    	}
+		
+		/* set and remove cookies for never cache the user role */
+		add_action( 'wp_ffpc_is_user_log_in', array( &$this , 'should_remove_md5_cookies' ), 0, 1);
+		add_action( 'set_logged_in_cookie', array( &$this , 'set_md5_cookies' ), 0,4);
+		add_action( 'wp_logout', array( &$this , 'remove_md5_cookies' ), 0);
 
 		/* get current wp_cron schedules */
 		$wp_schedules = wp_get_schedules();
@@ -177,6 +194,46 @@ class WP_FFPC extends WP_FFPC_ABSTRACT {
 		}
 		$this->select_schedules = $schedules;
 
+	}
+
+	public function set_md5_cookies( $logged_in_cookie, $expire, $expiration, $user_id ) {
+
+		$current_user = get_user_by( 'id', $user_id ); 
+
+		$cookies_key = array();
+
+		if ( !empty( $current_user->roles ) && is_array( $current_user->roles ) ) {
+			foreach ( $current_user->roles as $role ) {
+
+				if( array_key_exists( $role , $this->wp_roles_cookie_key  ) )
+					array_push( $cookies_key , $this->wp_roles_cookie_key [$role] );
+			}
+		}
+
+		foreach ( $cookies_key as $cookie_key  ) {
+			setcookie( $cookie_key ,1, $expire , SITECOOKIEPATH, COOKIE_DOMAIN );
+		}
+
+
+	}
+
+	public function remove_md5_cookies() {
+
+		foreach ( $this->wp_roles_cookie_key as $key ) {
+
+			if( isset( $_COOKIE[ $key ] ) )
+			{
+				unset( $_COOKIE[ $$key ] );
+		    	setcookie( $key , null, -1, SITECOOKIEPATH , COOKIE_DOMAIN );
+			}
+
+		}
+
+	}
+
+	public function should_remove_md5_cookies( $user ) {
+		if( !$user->exists() )
+			$this->remove_md5_cookies();
 	}
 
 	/**
@@ -209,6 +266,8 @@ class WP_FFPC extends WP_FFPC_ABSTRACT {
 		add_action( 'switch_theme', array( &$this->backend , 'clear' ), 0 );
 		add_action( 'deleted_post', array( &$this->backend , 'clear' ), 0 );
 		add_action( 'edit_post', array( &$this->backend , 'clear' ), 0 );
+
+
 
 		/* add filter for catching canonical redirects */
 		if ( WP_CACHE )
@@ -264,8 +323,6 @@ class WP_FFPC extends WP_FFPC_ABSTRACT {
 				}
 			}
 		}
-
-		add_filter('contextual_help', array( &$this, 'plugin_admin_nginx_help' ), 10, 2);
 	}
 
 	/**
@@ -377,28 +434,6 @@ class WP_FFPC extends WP_FFPC_ABSTRACT {
 	}
 
 	/**
-	 * admin help panel
-	 */
-	public function plugin_admin_nginx_help($contextual_help, $screen_id ) {
-
-		/* add our page only if the screenid is correct */
-		if ( strpos( $screen_id, $this->plugin_settings_page ) ) {
-			$content = __('<h3>Sample config for nginx to utilize the data entries</h3>', 'wp-ffpc');
-			$content .= __('<div class="update-nag">This is not meant to be a copy-paste configuration; you most probably have to tailor it to your needs.</div>', 'wp-ffpc');
-			$content .= __('<div class="update-nag"><strong>In case you are about to use nginx to fetch memcached entries directly and to use SHA1 hash keys, you will need an nginx version compiled with <a href="http://wiki.nginx.org/HttpSetMiscModule">HttpSetMiscModule</a>. Otherwise set_sha1 function is not available in nginx.</strong></div>', 'wp-ffpc');
-			$content .= '<code><pre>' . $this->nginx_example() . '</pre></code>';
-
-			get_current_screen()->add_help_tab( array(
-					'id'		=> 'wp-ffpc-nginx-help',
-					'title'		=> __( 'nginx example', 'wp-ffpc' ),
-					'content'	=> $content,
-			) );
-		}
-
-		return $contextual_help;
-	}
-
-	/**
 	 * admin panel, the admin page displayed for plugin settings
 	 */
 	public function plugin_admin_panel() {
@@ -408,6 +443,9 @@ class WP_FFPC extends WP_FFPC_ABSTRACT {
 		if( ! function_exists( 'current_user_can' ) || ! current_user_can( 'manage_options' ) ){
 			die( );
 		}
+
+
+
 		?>
 
 		<div class="wrap">
@@ -418,6 +456,13 @@ class WP_FFPC extends WP_FFPC_ABSTRACT {
 				jQuery( "#<?php echo $this->plugin_constant ?>-commands" ).tabs();
 			});
 		</script>
+
+		<style type="text/css">
+			.plugin-admin table dt {
+				margin-top: 0.5em;
+			}
+		</style>
+
 
 		<?php
 
@@ -509,55 +554,96 @@ class WP_FFPC extends WP_FFPC_ABSTRACT {
 					</select>
 					<span class="description"><?php _e('Select backend storage driver', 'wp-ffpc'); ?></span>
 				</dd>
-
 				<dt>
-					<label for="expire"><?php _e('Expiration time for posts', 'wp-ffpc'); ?></label>
+					<label for="expire"><?php _e('Expiration time', 'wp-ffpc'); ?></label>
 				</dt>
-				<dd>
-					<input type="number" name="expire" id="expire" value="<?php echo $this->options['expire']; ?>" />
-					<span class="description"><?php _e('Sets validity time of post entry in seconds, including custom post types and pages.', 'wp-ffpc'); ?></span>
-				</dd>
+				<table style="max-width:1200px">
+					<tr>
+						<td width="33%">
+							<!-- Post -->
+							<dt>
+								<label for="expire"><?php _e('Posts', 'wp-ffpc'); ?></label>
+							</dt>
+							<dd>
+								<input type="number" name="expire" id="expire" value="<?php echo $this->options['expire']; ?>" />
+								<span class="description"><?php _e('Sets validity time of post entry in seconds, including custom post types and pages.', 'wp-ffpc'); ?></span>
+							</dd>
+						</td>
+						<td width="33%">
+							<!-- Taxonomy -->
+							<dt>
+								<label for="expire_taxonomy"><?php _e('Taxonomy', 'wp-ffpc'); ?></label>
+							</dt>
+							<dd>
+								<input type="number" name="expire_taxonomy" id="expire_taxonomy" value="<?php echo $this->options['expire_taxonomy']; ?>" />
+								<span class="description"><?php _e('Sets validity time of taxonomy entry in seconds, including custom taxonomy.', 'wp-ffpc'); ?></span>
+							</dd>
+						</td>
+						<td width="33%">							
+							<!-- Home -->
+							<dt>
+								<label for="expire_home"><?php _e('Home', 'wp-ffpc'); ?></label>
+							</dt>
+							<dd>
+								<input type="number" name="expire_home" id="expire_home" value="<?php echo $this->options['expire_home']; ?>" />
+								<span class="description"><?php _e('Sets validity time of home on server side.', 'wp-ffpc'); ?></span>
+							</dd>
+						</td>
+					</tr>
 
+				</table>
 				<dt>
-					<label for="browsercache"><?php _e('Browser cache expiration time of posts', 'wp-ffpc'); ?></label>
+					<label for="expire"><?php _e('Browser Cache Expiration', 'wp-ffpc'); ?></label>
 				</dt>
-				<dd>
-					<input type="number" name="browsercache" id="browsercache" value="<?php echo $this->options['browsercache']; ?>" />
-					<span class="description"><?php _e('Sets validity time of posts/pages/singles for the browser cache.', 'wp-ffpc'); ?></span>
-				</dd>
+				<table style="max-width:1200px">
+					<tr>
+						<td width="33%">
+							<!-- Post -->
+							<dt>
+								<label for="browsercache"><?php _e('Posts', 'wp-ffpc'); ?></label>
+							</dt>
+							<dd>
+								<input type="number" name="browsercache" id="browsercache" value="<?php echo $this->options['browsercache']; ?>" />
+								<span class="description"><?php _e('Sets validity time of posts/pages/singles for the browser cache.', 'wp-ffpc'); ?></span>
+							</dd>
+						</td>
+						<td width="33%">
+							<!-- Taxonomy -->
+							<dt>
+								<label for="browsercache_taxonomy"><?php _e('Taxonomy', 'wp-ffpc'); ?></label>
+							</dt>
+							<dd>
+								<input type="number" name="browsercache_taxonomy" id="browsercache_taxonomy" value="<?php echo $this->options['browsercache_taxonomy']; ?>" />
+								<span class="description"><?php _e('Sets validity time of taxonomy for the browser cache.', 'wp-ffpc'); ?></span>
+							</dd>
+						</td>
+						<td width="33%">							
+							<!-- Home -->
+							<dt>
+								<label for="browsercache_home"><?php _e('Home', 'wp-ffpc'); ?></label>
+							</dt>
+							<dd>
+								<input type="number" name="browsercache_home" id="browsercache_home" value="<?php echo $this->options['browsercache_home']; ?>" />
+								<span class="description"><?php _e('Sets validity time of home for the browser cache.', 'wp-ffpc'); ?></span>
+							</dd>
+						</td>
+					</tr>
 
-				<dt>
-					<label for="expire_taxonomy"><?php _e('Expiration time for taxonomy', 'wp-ffpc'); ?></label>
-				</dt>
-				<dd>
-					<input type="number" name="expire_taxonomy" id="expire_taxonomy" value="<?php echo $this->options['expire_taxonomy']; ?>" />
-					<span class="description"><?php _e('Sets validity time of taxonomy entry in seconds, including custom taxonomy.', 'wp-ffpc'); ?></span>
-				</dd>
+					<tr>
+						<td colspan="3">							
+							<!-- Home -->
+							<dt>
+								<label for="browsercache_304"><?php _e('Enable Response 304 : Content Not Modified ', 'wp-ffpc'); ?></label>
+							</dt>
+							<dd>
+								<input type="checkbox" name="browsercache_304" id="browsercache_304" value="1" <?php checked($this->options['browsercache_304'],true); ?> />
+								<span class="description"><?php _e('If enabled , 304 response will be given by the server when page cache content is not changed. ', 'wp-ffpc'); ?></span>
+							</dd>
+						</td>
+					</tr>
+					</tr>
 
-				<dt>
-					<label for="browsercache_taxonomy"><?php _e('Browser cache expiration time of taxonomy', 'wp-ffpc'); ?></label>
-				</dt>
-				<dd>
-					<input type="number" name="browsercache_taxonomy" id="browsercache_taxonomy" value="<?php echo $this->options['browsercache_taxonomy']; ?>" />
-					<span class="description"><?php _e('Sets validity time of taxonomy for the browser cache.', 'wp-ffpc'); ?></span>
-				</dd>
-
-				<dt>
-					<label for="expire_home"><?php _e('Expiration time for home', 'wp-ffpc'); ?></label>
-				</dt>
-				<dd>
-					<input type="number" name="expire_home" id="expire_home" value="<?php echo $this->options['expire_home']; ?>" />
-					<span class="description"><?php _e('Sets validity time of home on server side.', 'wp-ffpc'); ?></span>
-				</dd>
-
-				<dt>
-					<label for="browsercache_home"><?php _e('Browser cache expiration time of home', 'wp-ffpc'); ?></label>
-				</dt>
-				<dd>
-					<input type="number" name="browsercache_home" id="browsercache_home" value="<?php echo $this->options['browsercache_home']; ?>" />
-					<span class="description"><?php _e('Sets validity time of home for the browser cache.', 'wp-ffpc'); ?></span>
-				</dd>
-
+				</table>
 				<dt>
 					<label for="charset"><?php _e('Charset', 'wp-ffpc'); ?></label>
 				</dt>
@@ -579,7 +665,8 @@ class WP_FFPC extends WP_FFPC_ABSTRACT {
 							$invalidation_method_description = array(
 								'clears everything in storage, <strong>including values set by other applications</strong>',
 								'clear only the modified posts entry, everything else remains in cache',
-								'unvalidates post and the taxonomy related to the post',
+								'removes all taxonomy term cache ( categories, tags, home, etc ) and the modified post as well<br><strong>Caution! Slows down page/post saving when there are many tags.</strong>',
+								'clear cache for modified post and posts index page'
 							);
 							foreach ($this->select_invalidation_method AS $current_key => $current_invalidation_method) {
 								printf('<li><em>%1$s</em> - %2$s</li>', $current_invalidation_method, $invalidation_method_description[$current_key]);
@@ -682,9 +769,43 @@ class WP_FFPC extends WP_FFPC_ABSTRACT {
 					<input type="checkbox" name="cache_loggedin" id="cache_loggedin" value="1" <?php checked($this->options['cache_loggedin'],true); ?> />
 					<span class="description"><?php _e('Cache pages even if user is logged in.', 'wp-ffpc'); ?></span>
 				</dd>
+				<dt>
+					<label for="nocache_role"><?php _e('NEVER Cache pages for the specified user role.', 'wp-ffpc'); ?></label>
+				</dt>
+				<dd>
+					<table style="max-width:1024px">
+						<thead>
+							<tr>
+								
+								<?php
+
+								$width_td = 100 / sizeof($this->wp_roles);
+
+								$width_td = round ( $width_td , 2);
+
+								foreach ($this->wp_roles as $role => $capability) {
+
+									$checked = "";
+
+									if( in_array( $role, $this->options['nocache_role'] ) )
+										$checked = "checked";
+
+									echo 	"<td width='{$width_td}%'>
+												<input type='checkbox' {$checked} name='nocache_role[]' value='{$role}' />
+												<span class='description'>{$capability['name']}</span>
+											</td>
+											";
+								}
+
+								?>
+							</tr>
+						</thead>
+					</table>
+					<span class="description"><?php _e('User with the following role will never get a cached page.', 'wp-ffpc'); ?></span>
+				</dd>
 
 				<dt>
-					<?php _e("Excludes", 'wp-ffpc'); ?></label>
+					<?php _e("Excludes Location", 'wp-ffpc'); ?></label>
 				<dd>
 					<table style="width:100%">
 						<thead>
@@ -739,12 +860,12 @@ class WP_FFPC extends WP_FFPC_ABSTRACT {
 					<label for="nocache_url"><?php _e("Don't cache following URL paths - use with caution!", 'wp-ffpc'); ?></label>
 				</dt>
 				<dd>
-					<textarea name="nocache_url" id="nocache_url" rows="3" cols="100" class="large-text code"><?php
+					<textarea name="nocache_url" id="nocache_url" rows="5" cols="100" class="large-text code"><?php
 						if( isset( $this->options['nocache_url'] ) ) {
 							echo $this->options['nocache_url'];
 						}
 					?></textarea>
-					<span class="description"><?php _e('Regular expressions use you must! e.g. <em>pattern1|pattern2|etc</em>', 'wp-ffpc'); ?></span>
+					<span class="description"><?php _e('Regular expressions use you must! e.g. <em>pattern1|pattern2|etc</em>. You can also use multiple line.', 'wp-ffpc'); ?></span>
 				</dd>
 
 				<dt>
@@ -805,6 +926,12 @@ class WP_FFPC extends WP_FFPC_ABSTRACT {
 
 
 			</dl>
+			</fieldset>
+
+			<fieldset id="<?php echo $this->plugin_constant ?>-nginx">
+			<legend><?php _e('Sample config for nginx to utilize the data entries', 'wp-ffpc'); ?></legend>
+			<div class="update-nag"><strong>In case you are about to use nginx to fetch memcached entries directly and to use SHA1 hash keys, you will need an nginx version compiled with <a href="http://wiki.nginx.org/HttpSetMiscModule">HttpSetMiscModule</a>. Otherwise set_sha1 function is not available in nginx.</strong></div>
+			<pre><?php echo $this->nginx_example(); ?></pre>
 			</fieldset>
 
 			<fieldset id="<?php echo $this->plugin_constant ?>-precache">
@@ -929,6 +1056,7 @@ class WP_FFPC extends WP_FFPC_ABSTRACT {
 			'debug' => __( 'Debug & in-depth', 'wp-ffpc'),
 			'exceptions' => __( 'Cache exceptions', 'wp-ffpc'),
 			'servers' => __( 'Backend settings', 'wp-ffpc'),
+			'nginx' => __( 'nginx', 'wp-ffpc'),
 			'precache' => __( 'Precache & precache log', 'wp-ffpc')
 		);
 
@@ -1079,10 +1207,10 @@ class WP_FFPC extends WP_FFPC_ABSTRACT {
 		$nginx = file_get_contents ( $this->nginx_sample );
 
 		if ( isset($this->options['hashkey']) && $this->options['hashkey'] == true )
-			$mckeys = '    set_sha1 $memcached_sha1_key $memcached_raw_key;
-    set $memcached_key DATAPREFIX$memcached_sha1_key;';
+			$mckeys = 'set_sha1 $memcached_sha1_key $memcached_raw_key;
+			set $memcached_key DATAPREFIX$memcached_sha1_key;';
 		else
-			$mckeys = '    set $memcached_key DATAPREFIX$memcached_raw_key;';
+			$mckeys = 'set $memcached_key DATAPREFIX$memcached_raw_key;';
 
 		$nginx = str_replace ( 'HASHEDORNOT' , $mckeys , $nginx );
 
@@ -1104,16 +1232,32 @@ class WP_FFPC extends WP_FFPC_ABSTRACT {
 			$nginx_servers .= "		server ". $servers .";\n";
 		}
 		$nginx = str_replace ( 'MEMCACHED_SERVERS' , $nginx_servers , $nginx );
+	
+		$loggedincookies = "";
 
-		$loggedincookies = join('|', $this->backend->cookies );
+		if( !$this->options['cache_loggedin']  )
+			$loggedincookies = join('|', $this->backend->cookies );
+
+		if( sizeof( $this->options[ 'nocache_role' ] ) > 0 ) {
+				foreach ($this->options[ 'nocache_role' ] as $role) {
+					
+					if( $loggedincookies == "" )
+						$loggedincookies = $this->wp_roles_cookie_key[ $role ];
+					else 
+						$loggedincookies = $loggedincookies."|".$this->wp_roles_cookie_key[ $role ];
+
+				}
+			}
+
+
 		/* this part is not used when the cache is turned on for logged in users */
 		$loggedin = '
-    if ($http_cookie ~* "'. $loggedincookies .'" ) {
-        set $memcached_request 0;
-    }';
+			if ($http_cookie ~* "'. $loggedincookies .'" ) {
+				set $memcached_request 0;
+			}';
 
 		/* add logged in cache, if valid */
-		if ( ! $this->options['cache_loggedin'])
+		if ( ! $this->options['cache_loggedin'] | sizeof( $this->options[ 'nocache_role' ] ) > 0 )
 			$nginx = str_replace ( 'LOGGEDIN_EXCEPTION' , $loggedin , $nginx );
 		else
 			$nginx = str_replace ( 'LOGGEDIN_EXCEPTION' , '' , $nginx );
@@ -1122,10 +1266,13 @@ class WP_FFPC extends WP_FFPC_ABSTRACT {
 		if( $this->options['nocache_cookies'] ) {
 			$cookies = str_replace( ",","|", $this->options['nocache_cookies'] );
 			$cookies = str_replace( " ","", $cookies );
+
+
+
 			$cookie_exception = '# avoid cache for cookies specified
-    if ($http_cookie ~* ' . $cookies . ' ) {
-        set $memcached_request 0;
-    }';
+			if ($http_cookie ~* ' . $cookies . ' ) {
+				set $memcached_request 0;
+			}';
 			$nginx = str_replace ( 'COOKIES_EXCEPTION' , $cookie_exception , $nginx );
 		} else {
 			$nginx = str_replace ( 'COOKIES_EXCEPTION' , '' , $nginx );
@@ -1140,7 +1287,7 @@ class WP_FFPC extends WP_FFPC_ABSTRACT {
 			$nginx = str_replace ( 'RESPONSE_HEADER' , '' , $nginx );
 		}
 
-		return htmlspecialchars($nginx);
+		return $nginx;
 	}
 
 	/**

@@ -3,8 +3,8 @@ Contributors: cadeyrn, ameir, haroldkyle, plescheff, dkcwd, IgorCode
 Donate link: https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=XU3DG7LLA76WC
 Tags: cache, page cache, full page cache, nginx, memcached, apc, speed
 Requires at least: 3.0
-Tested up to: 4.4.1
-Stable tag: 1.11.0
+Tested up to: 4.3.1
+Stable tag: 1.10.0
 License: GPLv3
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
 
@@ -13,8 +13,7 @@ The fastest way to cache: use the memory!
 == Description ==
 
 WP-FFPC ( WordPress Fast Full Page Cache ) is a cache plugin for [WordPress](http://wordpress.org/ "WordPress"). It works with any webserver, including apache2, lighttpd, nginx.
-
-It can be configured to join forces with [NGiNX](http://NGiNX.org "NGiNX")'s built-in [memcached plugin](http://nginx.org/en/docs/http/ngx_http_memcached_module.html "memcached plugin").
+It can be configured to join forces with [NGiNX](http://NGiNX.org "NGiNX")'s built-in [memcached plugin](http://nginx.org/en/docs/http/ngx_http_memcached_module.html "memcached plugin") for unbeatable speed.
 
 = **IMPORTANT NOTES, PLEASE READ THIS LIST** =
 
@@ -81,7 +80,6 @@ Many thanks for donations, contributors, supporters, testers & bug reporters:
 * Christian Kernbeis
 * Gausden Barry
 * Maksim Bukreyeu
-* Lissome Hong Kong Limited
 
 == Installation ==
 
@@ -131,28 +129,17 @@ Version numbering logic:
 * every .B version indicates new features.
 * every ..C indicates bugfixes for A.B version.
 
-= 1.11.0 =
-*2016-01-15*
-
-* merged filter for HTML before it hits the cache
-* refactored logging
-
-= 1.10.1 =
-*2015-10-30*
-
-* fixed nginx configuration sample snippets
-* nginx configuration moved from Settings tab to Help tab, so if you're looking for the "nginx" tab, you need to look under "Help" on the WP-FFPC Settings page.
-
 = 1.10.0 =
 *2015-10-23*
 
 *IMPORTANT, READ THIS*
 
-* Proper browser cache support:
-    * new options to set real browser cache expiry for singles, taxonomy and home
-    * added Etag support based on browser cache expiry
-    * added proper Expires header according to cache entry generation time + browser cache expiry
-    * added support for Last Modified header for home & taxonomy ( singles already had it) based on the last post modified date within the taxonomy
+proper browser cache support:
+* new options to set real browser cache expiry for singles, taxonomy and home
+* added Etag support based on browser cache expiry
+* added proper Expires header according to cache entry generation time + browser cache expiry
+* added support for Last Modified header for home & taxonomy ( singles already had it) based on the last post modified date within the taxonomy
+
 
 = 1.9.1 =
 *2015-10-18*
